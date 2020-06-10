@@ -2,4 +2,6 @@
 **/.vscode
 **/venv
 
+.idea/
+
 images
