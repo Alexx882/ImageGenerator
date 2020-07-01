@@ -9,6 +9,22 @@ def show_sample(sample):
     plt.colorbar()
     plt.show()
 
+def save_imgs(gan, epoch):
+        r, c = 5, 5
+        noise = np.random.normal(0, 1, (r * c, 100))
+
+        gen_imgs = gan.generator.predict(noise)
+
+        fig, axs = plt.subplots(r, c)
+        cnt = 0
+        for i in range(r):
+            for j in range(c):
+                axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
+                axs[i,j].axis('off')
+                cnt += 1
+        fig.savefig("gan/images/mnist_%d.png" % epoch)
+        plt.close()
+
 def rescale_sample(sample):
     sample_rescaled = []
 
@@ -23,7 +39,7 @@ def rescale_sample(sample):
     return sample_rescaled
 
 if __name__ == "__main__":
-    gan = gan.GAN((28,28,1), epochs=10)
+    gan = gan.GAN((28,28,1), epochs=5000, iterations_discriminator=10, iterations_generator=30, f_save= lambda gan, epoch : save_imgs(gan, epoch))
 
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 

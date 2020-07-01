@@ -4,7 +4,7 @@ import numpy as np
 
 
 class GAN:
-    def __init__(self, shape, epochs=5, batch_size=128, iterations_generator=20, iterations_discriminator=20, summary=False):
+    def __init__(self, shape, epochs=5, batch_size=128, iterations_generator=20, iterations_discriminator=20, summary=False, f_save=None):
         self.width = shape[0]
         self.height = shape[1]
         self.channels = shape[2]
@@ -14,6 +14,7 @@ class GAN:
         self.iterations_discriminator = iterations_discriminator
         self.shape = (self.width, self.height, self.channels)
         self.summary = summary
+        self.f_save = f_save
 
         optimizer = keras.optimizers.Adam(0.0002, 0.5)
 
@@ -131,19 +132,24 @@ class GAN:
             self.discriminator.trainable = False
 
             print("EPOCH %d.%d [D] loss: %f, acc.: %.2f%%]" %
-                (epoch+1, i, d_loss[0], 100*d_loss[1]))
+                (epoch+1, i+1, d_loss[0], 100*d_loss[1]))
 
     def train_generator(self, epoch):
-            for i in range(self.iterations_generator):
-                batch_size = self.training_data.shape[0]
-                noise = np.random.normal(0, 1, (batch_size, 100))
+        '''
+        create a vector of noise and feed it into the combined model with the aim 
+        to get a classification of 1 (="real")
+        '''
 
-                valid_y = np.array([0.9] * batch_size)
-                # freeze discriminator while generator is trained
-                self.discriminator.trainable = False
-                g_loss = self.combined.train_on_batch(noise, valid_y)
+        for i in range(self.iterations_generator):
+            batch_size = self.training_data.shape[0]
+            noise = np.random.normal(0, 1, (batch_size, 100))
 
-                print("EPOCH %d.%d [G] loss: %f]" % (epoch+1, i, g_loss))
+            valid_y = np.array([1] * batch_size)
+            # freeze discriminator while generator is trained
+            self.discriminator.trainable = False
+            g_loss = self.combined.train_on_batch(noise, valid_y)
+
+            print("EPOCH %d.%d [G] loss: %f]" % (epoch+1, i+1, g_loss))
 
 
     def train(self):
@@ -151,9 +157,15 @@ class GAN:
         train discriminator/generator for the number of epochs
         '''
 
+        if self.f_save != None:
+                self.f_save(self, 0)
+
         for epoch in range(self.epochs):
             self.train_discriminator(epoch)
             self.train_generator(epoch)
+
+            if self.f_save != None:
+                self.f_save(self, epoch+1)
             
     def generate(self):
         noise = np.random.normal(0, 1, (1, 100))
