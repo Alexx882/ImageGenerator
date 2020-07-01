@@ -16,26 +16,64 @@ class GAN:
         self.summary = summary
         self.f_save = f_save
 
-        optimizer = keras.optimizers.Adam(0.0002, 0.5)
+        self.initialized_discriminator = False
+        self.initialized_generator = False
+        self.initialized_combined_model = False
 
-        self.discriminator = self.build_discriminator()
+        self.optimizer = keras.optimizers.Adam(0.0002, 0.5)
+
+        self.set_discriminator(self.build_discriminator())
         self.discriminator.compile(
             loss='binary_crossentropy',
-            optimizer=optimizer,
+            optimizer=self.optimizer,
             metrics=['accuracy']
         )
 
-        self.generator = self.build_generator()
-        self.generator.compile(loss='binary_crossentropy', optimizer=optimizer)
+        self.set_generator(self.build_generator())
+        self.generator.compile(loss='binary_crossentropy', optimizer=self.optimizer)
+
+        self.bake_combined()
+    
+    def set_discriminator(self, model):
+        self.discriminator = model
+        self.initialized_discriminator = True
+
+    def set_generator(self, model):
+        self.generator = model
+        self.initialized_generator = True
+    
+    def bake_combined(self):
+        if not self.initialized_discriminator or not self.initialized_generator:
+            raise ValueError("Generator/Discriminator not initialized yet!")
 
         z = keras.Input(shape=(100,))
         img = self.generator(z)
 
-        self.discriminator.trainable = False
         valid = self.discriminator(img)
 
         self.combined = keras.Model(z, valid)
-        self.combined.compile(loss='binary_crossentropy', optimizer=optimizer)
+        self.combined.compile(loss='binary_crossentropy', optimizer=self.optimizer)
+
+    def doctor(self):
+        s = "Initialized generator"
+
+        if self.initialized_generator:
+            print(s + " ... OK")
+        else:
+            print(s+" ... NOK")
+        
+        s = "Initialized discriminator"
+
+        if self.initialized_discriminator:
+            print(s + " ... OK")
+        else:
+            print(s+" ... NOK")
+        
+        s = "Baked combined model"
+        if self.initialized_combined_model:
+            print(s + " ... OK")
+        else:
+            print(s+" ... NOK")
 
     #
     # classifies images and tries to detect "fake" ones from the generator
@@ -98,9 +136,8 @@ class GAN:
 
         return keras.Model(noise, img)
 
-    def set_training_data(self, data, labels):
+    def set_training_data(self, data):
         self.training_data = data
-        self.training_labels = labels
 
     def train_discriminator(self, epoch):
         '''
@@ -132,7 +169,7 @@ class GAN:
             self.discriminator.trainable = False
 
             print("EPOCH %d.%d [D] loss: %f, acc.: %.2f%%]" %
-                (epoch+1, i+1, d_loss[0], 100*d_loss[1]))
+                  (epoch+1, i+1, d_loss[0], 100*d_loss[1]))
 
     def train_generator(self, epoch):
         '''
@@ -144,21 +181,21 @@ class GAN:
             batch_size = self.training_data.shape[0]
             noise = np.random.normal(0, 1, (batch_size, 100))
 
-            valid_y = np.array([1] * batch_size)
+            valid_y = np.array([0.9] * batch_size)
             # freeze discriminator while generator is trained
             self.discriminator.trainable = False
             g_loss = self.combined.train_on_batch(noise, valid_y)
 
             print("EPOCH %d.%d [G] loss: %f]" % (epoch+1, i+1, g_loss))
 
-
     def train(self):
         '''
         train discriminator/generator for the number of epochs
+        if a save function is specified, it will executed once per epoch
         '''
 
         if self.f_save != None:
-                self.f_save(self, 0)
+            self.f_save(self, 0)
 
         for epoch in range(self.epochs):
             self.train_discriminator(epoch)
@@ -166,18 +203,17 @@ class GAN:
 
             if self.f_save != None:
                 self.f_save(self, epoch+1)
-            
+
     def generate(self):
+        '''
+        samples a noise-vector and returns the outputs of the last layer of the generator
+        '''
         noise = np.random.normal(0, 1, (1, 100))
         return self.generator.predict(noise)
 
-    def predict(self):
-        # batchnr | image width | image height | channel
-        data = np.arange(28*28).reshape(1, 28, 28, 1)
-
-        return self.discriminator.predict(data)
-
-
-if __name__ == "__main__":
-    gan = GAN((28, 28, 1))
-    print(gan.predict())
+    def export(self, path):
+        '''
+        exports the discriminator/generator to the specified location
+        '''
+        self.discriminator.save(path+"/discriminator.h5")
+        self.discriminator.save(path+"/generator.h5")
