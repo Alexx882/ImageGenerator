@@ -34,13 +34,15 @@ def get_webpage(url, nr_batches) -> Iterator[str]:
             body.send_keys(Keys.PAGE_DOWN)
         time.sleep(2)
 
+    driver.quit()
+
 
 def write_output(image_urls: List[str]):
     with open('crawler/sources.txt', 'w') as file:
         file.write('\n'.join(image_urls))
 
 
-if __name__ == '__main__':
+def run():
     bodies = get_webpage(URL, NR_IMAGE_BATCHES)
 
     image_sources = []
@@ -53,4 +55,5 @@ if __name__ == '__main__':
 
     write_output(image_sources)
 
-
+if __name__ == '__main__':
+    run()

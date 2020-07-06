@@ -28,6 +28,8 @@ def scaleDown(filename):
     im.save('images/'+filename)
 
 def detect(filename):
+    '''Detects the face for an image.'''
+
     # Create the haar cascade
     faceCascade = cv2.CascadeClassifier('preprocessing/haarcascade_frontalface_default.xml')
 
@@ -70,7 +72,7 @@ def detect(filename):
     if len(faces) == 1:
         return c
     
-    raise AssertionError("Image does not contain any faces!")
+    raise AssertionError("Image does not contain one distinct face!")
 
 def squarify(filename, coi):
     im = Image.open('images/'+filename)
@@ -90,13 +92,14 @@ def squarify(filename, coi):
     # save the final result
     im.save('images/'+filename)
 
-if __name__ =="__main__":
+def crop_to_face():
+    '''Crops all images in folder ./images/ to their faces.'''
     if not os.path.exists('images'):
         os.mkdir('images')
     
-    for filename in os.listdir(r'images'):
+    for filename in os.listdir('images'):
         try:
-            print("preprocessing "+filename)
+            # print("preprocessing "+filename)
             c = detect(filename)
             squarify(filename, c)
             scaleDown(filename)
@@ -104,6 +107,10 @@ if __name__ =="__main__":
             
         except AssertionError:
             os.remove('images/'+filename)
-            print("no faces found, deleting image")
+            # print("no distinct face found, deleting image")
 
         # crop(filename)
+
+
+if __name__ =="__main__":
+    crop_to_face()
