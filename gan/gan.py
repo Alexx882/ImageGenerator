@@ -1,36 +1,40 @@
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
+import os
 
+DISC_FILENAME = '/discriminator.h5'
+GEN_FILENAME = '/generator.h5'
 
 class GAN:
-    def __init__(self, shape, epochs=5, batch_size=128, iterations_generator=20, iterations_discriminator=20, summary=False, f_save=None):
+
+    def __init__(self, shape, batch_size=128, summary=False, f_save=None):
         '''
         creates a GAN instance that can be trained to generate images in the specified size
         @params:
             shape                    - Required  : shape of the input/output images in the format channels_last
-            epochs                   - Optional  : number of times, the generator/discriminator are trained. 
             batch_size               - Optional  : number of times, a training run in an epoch is executed. total number of individual training rounds is epochs*iterations_X
-            iterations_generator     - Optional  : how many iterations are executed for the generator
-            iterations_discriminator - Optional  : how many iterations are executed for the discriminator
             summary                  - Optional  : should the summary of the models be printed to console
             f_save                   - Optional  : function that gets executed once per epoch. it is in the form (GAN, int) -> void
         '''
+        # apply const arguments
         self.width = shape[0]
         self.height = shape[1]
         self.channels = shape[2]
-        self.epochs = epochs
         self.batch_size = batch_size
-        self.iterations_generator = iterations_generator
-        self.iterations_discriminator = iterations_discriminator
         self.shape = (self.width, self.height, self.channels)
         self.summary = summary
         self.f_save = f_save
-
+        
         self.initialized_discriminator = False
         self.initialized_generator = False
         self.initialized_combined_model = False
         self.has_training_data = False
+
+        self.set_architectures()
+    
+    def set_architectures(self):
+        '''Applies the architectures defined in build_*() methods.'''
 
         self.optimizer = keras.optimizers.Adam(0.0002, 0.5)
 
@@ -40,9 +44,14 @@ class GAN:
             optimizer=self.optimizer,
             metrics=['accuracy']
         )
+        # self.discriminator.trainable = False
 
         self.set_generator(self.build_generator())
-        self.generator.compile(loss='binary_crossentropy', optimizer=self.optimizer)
+        self.generator.compile(
+            loss='binary_crossentropy', 
+            optimizer=self.optimizer
+        )
+        # self.generator.trainable = False
 
         self.bake_combined()
     
@@ -117,11 +126,10 @@ class GAN:
         else:
             print(s+" ... NOK")
 
-    #
-    # classifies images and tries to detect "fake" ones from the generator
-    #
     def build_discriminator(self):
         '''
+        classifies images and tries to detect "fake" ones from the generator
+
         builds a sample discriminator to be used in the GAN. The last layer has only 1 node and indicates if it is a fake 
         image (0) or a real image (1)
         '''
@@ -158,11 +166,10 @@ class GAN:
 
         return keras.Model(img, validity)
 
-    #
-    # transforms random noise into an image
-    #
     def build_generator(self):
         '''
+        transforms random noise into an image
+        
         builds a sample discriminator to be used in the GAN. The last layer has the shape of the image set in the constructor. 
         it contains the generated image.
         '''
@@ -211,13 +218,13 @@ class GAN:
         self.training_data = data
         self.has_training_data = True
 
-    def train_discriminator(self, epoch):
+    def train_discriminator(self, epoch, iterations):
         '''
         select a random half of the training data (real images) and train the discriminator on them (output 1)
         select an equally sized array of generated images (fake images) and train the discriminator on them (output 0)
         '''
 
-        for i in range(self.iterations_discriminator):
+        for i in range(iterations):
             np.random.shuffle(self.training_data)
 
             half_batch_size = int(self.batch_size / 2)
@@ -236,43 +243,50 @@ class GAN:
                 batch1_real, np.ones(half_batch_size))
             d_loss_fake = self.discriminator.train_on_batch(
                 batch_fake, np.zeros(half_batch_size))
-            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             self.discriminator.trainable = False
 
-            print("EPOCH %d.%d [D] loss: %f, acc.: %.2f%%]" %
-                  (epoch+1, i+1, d_loss[0], 100*d_loss[1]))
+            print(f"EPOCH {epoch+1}.{i+1} [D] "
+                  f"loss real/fake: {d_loss_real[0]} / {d_loss_fake[0]} ; "
+                  f"acc real/fake: {100*d_loss_real[1]} / {100*d_loss_fake[1]}]")
 
-    def train_generator(self, epoch):
+    def train_generator(self, epoch, iterations):
         '''
         create a vector of noise and feed it into the combined model with the aim 
         to get a classification of 1 (="real")
         '''
 
-        for i in range(self.iterations_generator):
-            batch_size = self.training_data.shape[0]
+        for i in range(iterations):
+            # shuffled for discriminator
+            batch_size = self.batch_size
             noise = np.random.normal(0, 1, (batch_size, 100))
 
-            valid_y = np.array([0.9] * batch_size)
+            target_y = np.array([1.] * batch_size) # should be detected as 1
+
             # freeze discriminator while generator is trained
             self.discriminator.trainable = False
-            g_loss = self.combined.train_on_batch(noise, valid_y)
+            g_loss = self.combined.train_on_batch(noise, target_y)
+            # self.generator.trainable = False
 
             print("EPOCH %d.%d [G] loss: %f]" % (epoch+1, i+1, g_loss))
 
-    def train(self):
+    def train(self, epochs=5, iterations_generator=20, iterations_discriminator=20):
         '''
         train discriminator/generator for the number of epochs. during each epoch, both are 
         trained iterations_X times as specified in the constructor. if a save function is specified, 
         it will be executed once per epoch
+
+        :param epochs: number of epochs to train
+        :param iterations_generator: iterations per epoch for gen
+        :param iterations_discriminator: iterations per epoch for disc
         '''
         
         if self.f_save != None:
             self.f_save(self, 0)
 
-        for epoch in range(self.epochs):
-            self.train_discriminator(epoch)
-            self.train_generator(epoch)
+        for epoch in range(epochs):
+            self.train_discriminator(epoch, iterations_discriminator)
+            self.train_generator(epoch, iterations_generator)
 
             if self.f_save != None:
                 self.f_save(self, epoch+1)
@@ -290,5 +304,28 @@ class GAN:
         '''
         self.discriminator.trainable = True
         self.generator.trainable = True
-        self.discriminator.save(path+"/discriminator.h5")
-        self.generator.save(path+"/generator.h5")
+        self.discriminator.save(os.path.normpath(path + DISC_FILENAME))
+        self.generator.save(os.path.normpath(path + GEN_FILENAME))
+
+    def import_(self, path, silent=False):
+        ''' 
+        Imports the disc/gen from the specified location. 
+        
+        :param path: 
+        '''
+
+        disc_path = os.path.normpath(path + DISC_FILENAME)
+        gen_path = os.path.normpath(path + GEN_FILENAME)
+
+        if not os.path.exists(disc_path) or not os.path.exists(gen_path):
+            err = f"Did not find models at path: {path}"
+            if silent:
+                print(err)
+                return
+            else:
+                raise ValueError(err)
+
+        self.set_discriminator(keras.models.load_model(disc_path))
+        self.set_generator(keras.models.load_model(gen_path))
+        self.bake_combined()
+

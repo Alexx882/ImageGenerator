@@ -4,5 +4,8 @@
 
 .idea/
 
-images
+images/
 images_original/
+
+gan/models*/
+gan/results*/
