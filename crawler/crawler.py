@@ -10,8 +10,8 @@ from selenium.webdriver.common.keys import Keys
 
 
 URL = 'https://unsplash.com/s/photos/model'
-NR_IMAGE_BATCHES = 2 
-SCROLL_AMOUNT = 10 # scroll amount for a single batch
+NR_IMAGE_BATCHES = 500
+SCROLL_AMOUNT = 5 # scroll amount for a single batch
 
 def get_webpage(url, nr_batches) -> Iterator[str]:
     '''
@@ -38,22 +38,19 @@ def get_webpage(url, nr_batches) -> Iterator[str]:
 
 
 def write_output(image_urls: List[str]):
-    with open('crawler/sources.txt', 'w') as file:
+    with open('crawler/sources.txt', 'a') as file:
         file.write('\n'.join(image_urls))
+        file.write('\n')
 
 
 def run():
     bodies = get_webpage(URL, NR_IMAGE_BATCHES)
 
-    image_sources = []
-
     for body in bodies:
         soup = BeautifulSoup(body, 'html.parser')
         img_tags = soup.findAll('img', class_='_2VWD4 _2zEKz')
 
-        image_sources.extend([t['src'] for t in img_tags])
-
-    write_output(image_sources)
+        write_output([t['src'] for t in img_tags])
 
 if __name__ == '__main__':
     run()
