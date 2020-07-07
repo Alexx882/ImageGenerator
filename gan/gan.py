@@ -2,6 +2,7 @@ import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import os
+import random
 
 DISC_FILENAME = '/discriminator.h5'
 GEN_FILENAME = '/generator.h5'
@@ -227,16 +228,19 @@ class GAN:
             # unfreeze discriminator for training
             self.discriminator.trainable = True
 
-            d_loss_real = self.discriminator.train_on_batch(
-                batch1_real, np.ones(half_batch_size))
-            d_loss_fake = self.discriminator.train_on_batch(
-                batch_fake, np.zeros(half_batch_size))
+            data = list(zip(batch1_real, np.ones(half_batch_size)))
+            data.extend(list(zip(batch_fake, np.zeros(half_batch_size))))
+            random.shuffle(data)
+
+            features, labels = zip(*data)
+            features = np.asarray(features)
+            labels = np.asarray(labels)
+
+            d_loss = self.discriminator.train_on_batch(features, labels)
 
             self.discriminator.trainable = False
 
-            print(f"EPOCH {epoch+1}.{i+1} [D] "
-                  f"loss real/fake: {d_loss_real[0]} / {d_loss_fake[0]} ; "
-                  f"acc real/fake: {100*d_loss_real[1]} / {100*d_loss_fake[1]}]")
+            print(f"EPOCH {epoch+1}.{i+1} [D] loss: {d_loss[0]} ; acc: {100*d_loss[1]}")
 
     def train_generator(self, epoch, iterations):
         '''
@@ -313,6 +317,7 @@ class GAN:
             else:
                 raise ValueError(err)
 
+        print("Loading models from file")
         self.set_discriminator(keras.models.load_model(disc_path))
         self.set_generator(keras.models.load_model(gen_path))
         self.bake_combined()
