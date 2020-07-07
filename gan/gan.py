@@ -80,11 +80,17 @@ class GAN:
 
         self.combined = keras.Model(z, valid)
         self.combined.compile(loss='binary_crossentropy', optimizer=self.optimizer)
+        self.initialized_combined_model = True
 
     def doctor(self):
         '''
         performs a self-check to debug if all necessary actions were done before starting to train/use the network
         '''
+
+        print("##############")
+        print("# GAN DOCTOR #")
+        print("##############")
+
         s = "Initialized generator"
 
         if self.initialized_generator:
@@ -191,6 +197,7 @@ class GAN:
         '''
 
         self.training_data = data
+        self.has_training_data = True
 
     def train_discriminator(self, epoch):
         '''
@@ -269,5 +276,7 @@ class GAN:
         '''
         exports the discriminator/generator to the specified location
         '''
+        self.discriminator.trainable = True
+        self.generator.trainable = True
         self.discriminator.save(path+"/discriminator.h5")
-        self.discriminator.save(path+"/generator.h5")
+        self.generator.save(path+"/generator.h5")
