@@ -8,7 +8,7 @@ import tensorflow.keras.layers as layers
 import tensorflow.keras as keras
 import matplotlib.pyplot as plt
 
-class HR_DCGAN(GAN):
+class DCGAN(GAN):
     '''
     This class represents the network architecture from the paper:
 
@@ -18,7 +18,7 @@ class HR_DCGAN(GAN):
     '''
 
     def __init__(self, shape, f_save=None):
-        super().__init__(shape, f_save)
+        super().__init__(shape, f_save=f_save)
 
     def build_generator(self):
         noise_shape = (100,)
@@ -26,14 +26,14 @@ class HR_DCGAN(GAN):
         model = Sequential([
             layers.Dense(7*7*256, use_bias=False, input_shape=noise_shape),
             layers.BatchNormalization(),
-            layers.ELU(),
+            layers.LeakyReLU(),
 
             layers.Reshape((7,7,256)),
             # shape (7,7,256)
 
             layers.Conv2DTranspose(128, (4,4), strides=(1,1), padding='same', use_bias=False),
             layers.BatchNormalization(),
-            layers.ELU(),
+            layers.LeakyReLU(),
             # shape (7,7,128)
 
             # stride 2 -> larger image
@@ -41,7 +41,7 @@ class HR_DCGAN(GAN):
             # TODO read about Conv2DTranspose
             layers.Conv2DTranspose(64, (4,4), strides=(2,2), padding='same', use_bias=False),
             layers.BatchNormalization(),
-            layers.ELU(),
+            layers.LeakyReLU(),
             # shape (14,14,64)
 
             layers.Conv2DTranspose(1, (4,4), strides=(2,2), padding='same', use_bias=False, activation='tanh')
@@ -67,12 +67,11 @@ class HR_DCGAN(GAN):
         
         model = Sequential([
 
-            layers.Conv2D(64, 4, strides=(2,2), padding='same', input_shape=img_shape),
-            layers.ELU(),
+            layers.Conv2D(64, (4,4), strides=(2,2), padding='same', input_shape=img_shape),
+            layers.LeakyReLU(),
 
-            layers.Conv2D(128, 4, strides=(2,2), padding='same'),
-            layers.BatchNormalization(),
-            layers.ELU(),
+            layers.Conv2D(128, (4,4), strides=(2,2), padding='same'),
+            layers.LeakyReLU(),
 
             # layers.Conv2D(256, 4, strides=(1,1), padding='same', activation='sigmoid'),
 

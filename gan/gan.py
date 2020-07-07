@@ -4,12 +4,11 @@ import numpy as np
 
 
 class GAN:
-    def __init__(self, shape, epochs=5, batch_size=128, iterations_generator=20, iterations_discriminator=20, summary=False, f_save=None):
+    def __init__(self, shape, batch_size=128, iterations_generator=20, iterations_discriminator=20, summary=False, f_save=None):
         '''
         creates a GAN instance that can be trained to generate images in the specified size
         @params:
             shape                    - Required  : shape of the input/output images in the format channels_last
-            epochs                   - Optional  : number of times, the generator/discriminator are trained. 
             batch_size               - Optional  : number of times, a training run in an epoch is executed. total number of individual training rounds is epochs*iterations_X
             iterations_generator     - Optional  : how many iterations are executed for the generator
             iterations_discriminator - Optional  : how many iterations are executed for the discriminator
@@ -20,7 +19,6 @@ class GAN:
         self.width = shape[0]
         self.height = shape[1]
         self.channels = shape[2]
-        self.epochs = epochs
         self.batch_size = batch_size
         self.iterations_generator = iterations_generator
         self.iterations_discriminator = iterations_discriminator
@@ -260,7 +258,7 @@ class GAN:
 
             print("EPOCH %d.%d [G] loss: %f]" % (epoch+1, i+1, g_loss))
 
-    def train(self):
+    def train(self, epochs=5):
         '''
         train discriminator/generator for the number of epochs. during each epoch, both are 
         trained iterations_X times as specified in the constructor. if a save function is specified, 
@@ -270,7 +268,7 @@ class GAN:
         if self.f_save != None:
             self.f_save(self, 0)
 
-        for epoch in range(self.epochs):
+        for epoch in range(epochs):
             self.train_discriminator(epoch)
             self.train_generator(epoch)
 
