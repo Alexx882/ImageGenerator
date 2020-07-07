@@ -16,6 +16,7 @@ class GAN:
             summary                  - Optional  : should the summary of the models be printed to console
             f_save                   - Optional  : function that gets executed once per epoch. it is in the form (GAN, int) -> void
         '''
+        # apply const arguments
         self.width = shape[0]
         self.height = shape[1]
         self.channels = shape[2]
@@ -26,11 +27,16 @@ class GAN:
         self.shape = (self.width, self.height, self.channels)
         self.summary = summary
         self.f_save = f_save
-
+        
         self.initialized_discriminator = False
         self.initialized_generator = False
         self.initialized_combined_model = False
         self.has_training_data = False
+
+        self.set_architectures()
+    
+    def set_architectures(self):
+        '''Applies the architectures defined in build_*() methods.'''
 
         self.optimizer = keras.optimizers.Adam(0.0002, 0.5)
 
@@ -40,9 +46,14 @@ class GAN:
             optimizer=self.optimizer,
             metrics=['accuracy']
         )
+        # self.discriminator.trainable = False
 
         self.set_generator(self.build_generator())
-        self.generator.compile(loss='binary_crossentropy', optimizer=self.optimizer)
+        self.generator.compile(
+            loss='binary_crossentropy', 
+            optimizer=self.optimizer
+        )
+        # self.generator.trainable = False
 
         self.bake_combined()
     
@@ -245,6 +256,7 @@ class GAN:
             # freeze discriminator while generator is trained
             self.discriminator.trainable = False
             g_loss = self.combined.train_on_batch(noise, valid_y)
+            # self.generator.trainable = False
 
             print("EPOCH %d.%d [G] loss: %f]" % (epoch+1, i+1, g_loss))
 
