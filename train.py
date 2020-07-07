@@ -34,6 +34,8 @@ def load_dataset():
 
 def train(x_train):
     gan = DCGAN(shape=(28,28,1), f_save=lambda gan, n_epoch: save_imgs(gan, n_epoch))
+    gan.import_('gan/models_dcgan/')
+
     gan.set_training_data(x_train)
     gan.train(epochs=40, iterations_generator=50, iterations_discriminator=10)
     gan.train(epochs=40, iterations_generator=40, iterations_discriminator=10)
@@ -41,14 +43,15 @@ def train(x_train):
     gan.export('gan/models_dcgan/')
 
 
-def create_folder(folder):
-    if os.path.exists(folder):
+def create_folder(folder, delete_first=False):
+    if os.path.exists(folder) and delete_first:
         shutil.rmtree(folder)
     if not os.path.exists(folder):
         os.mkdir(folder)
 
 
-create_folder('gan/results_dcgan/')
+create_folder('gan/results_dcgan/', delete_first=True)
+create_folder('gan/models/')
 create_folder('gan/models_dcgan/')
 
 data = load_dataset()

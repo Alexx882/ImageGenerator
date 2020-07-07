@@ -1,9 +1,13 @@
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
+import os
 
+DISC_FILENAME = '/discriminator.h5'
+GEN_FILENAME = '/generator.h5'
 
 class GAN:
+
     def __init__(self, shape, batch_size=128, summary=False, f_save=None):
         '''
         creates a GAN instance that can be trained to generate images in the specified size
@@ -227,12 +231,12 @@ class GAN:
                 batch1_real, np.ones(half_batch_size))
             d_loss_fake = self.discriminator.train_on_batch(
                 batch_fake, np.zeros(half_batch_size))
-            d_loss = 0.5 * np.add(d_loss_real, d_loss_fake)
 
             self.discriminator.trainable = False
 
-            print("EPOCH %d.%d [D] loss: %f, acc.: %.2f%%]" %
-                  (epoch+1, i+1, d_loss[0], 100*d_loss[1]))
+            print(f"EPOCH {epoch+1}.{i+1} [D] "
+                  f"loss real/fake: {d_loss_real[0]} / {d_loss_fake[0]} ; "
+                  f"acc real/fake: {100*d_loss_real[1]} / {100*d_loss_fake[1]}]")
 
     def train_generator(self, epoch, iterations):
         '''
@@ -245,11 +249,11 @@ class GAN:
             batch_size = self.batch_size
             noise = np.random.normal(0, 1, (batch_size, 100))
 
-            valid_y = np.array([0.9] * batch_size) # should be detected as 1
+            target_y = np.array([1.] * batch_size) # should be detected as 1
 
             # freeze discriminator while generator is trained
             self.discriminator.trainable = False
-            g_loss = self.combined.train_on_batch(noise, valid_y)
+            g_loss = self.combined.train_on_batch(noise, target_y)
             # self.generator.trainable = False
 
             print("EPOCH %d.%d [G] loss: %f]" % (epoch+1, i+1, g_loss))
@@ -288,5 +292,28 @@ class GAN:
         '''
         self.discriminator.trainable = True
         self.generator.trainable = True
-        self.discriminator.save(path+"/discriminator.h5")
-        self.generator.save(path+"/generator.h5")
+        self.discriminator.save(os.path.normpath(path + DISC_FILENAME))
+        self.generator.save(os.path.normpath(path + GEN_FILENAME))
+
+    def import_(self, path, silent=False):
+        ''' 
+        Imports the disc/gen from the specified location. 
+        
+        :param path: 
+        '''
+
+        disc_path = os.path.normpath(path + DISC_FILENAME)
+        gen_path = os.path.normpath(path + GEN_FILENAME)
+
+        if not os.path.exists(disc_path) or not os.path.exists(gen_path):
+            err = f"Did not find models at path: {path}"
+            if silent:
+                print(err)
+                return
+            else:
+                raise ValueError(err)
+
+        self.set_discriminator(keras.models.load_model(disc_path))
+        self.set_generator(keras.models.load_model(gen_path))
+        self.bake_combined()
+
