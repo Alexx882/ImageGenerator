@@ -1,72 +1,87 @@
-# from gan import GAN
+from gan.gan import GAN
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 import tensorflow.keras.layers as layers
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
-# class HR_DCGAN(GAN):
-#     '''
-#     This class represents the network architecture from the paper:
+class HR_DCGAN(GAN):
+    '''
+    This class represents the network architecture from the paper:
 
-#     High-Resolution Deep Convolutional Generative Adversarial Networks
-#     <br />    
-#     J. D. Curtó, I. C. Zarza, Fernando de la Torre, Irwin King, Michael R. Lyu
-#     '''
+    High-Resolution Deep Convolutional Generative Adversarial Networks
+    <br />    
+    J. D. Curtó, I. C. Zarza, Fernando de la Torre, Irwin King, Michael R. Lyu
+    '''
 
-#     def __init__(self):
-#         pass
+    def __init__(self, shape):
+        super().__init__(shape)
 
-def build_generator():
-    noise_shape = (100,)
+    def build_generator(self):
+        noise_shape = (100,)
+        print(noise_shape)
 
-    model = Sequential([
-        layers.Dense(7*7*256, use_bias=False, input_shape=noise_shape),
-        layers.BatchNormalization(),
-        layers.ELU(),
-        layers.Reshape((7,7,256)),
+        model = Sequential([
+            layers.Dense(7*7*256, use_bias=False, input_shape=noise_shape),
+            layers.BatchNormalization(),
+            layers.ELU(),
 
-        # input (7,7,256)
-        layers.Conv2D(128, 4, strides=(1,1), padding='same', use_bias=False),
-        layers.BatchNormalization(),
-        layers.ELU(),
+            layers.Reshape((7,7,256)),
+            # shape (7,7,256)
 
-        # stride 2 -> larger image
-        # thiccness 128 -> channels
-        layers.Conv2D(64, 4, strides=(2,2), padding='same', use_bias=False),
-        layers.BatchNormalization(),
-        layers.ELU(),
+            layers.Conv2DTranspose(128, (4,4), strides=(1,1), padding='same', use_bias=False),
+            layers.BatchNormalization(),
+            layers.ELU(),
+            # shape (7,7,128)
 
-        layers.Conv2D(1, 4, strides=(2,2), padding='same', use_bias=False, activation='tanh'),
-        layers.BatchNormalization(),
-        layers.ELU()
+            # stride 2 -> larger image
+            # thiccness 128 -> channels
+            # TODO read about Conv2DTranspose
+            layers.Conv2DTranspose(64, (4,4), strides=(2,2), padding='same', use_bias=False),
+            layers.BatchNormalization(),
+            layers.ELU(),
+            # shape (14,14,64)
 
-    ])
+            layers.Conv2DTranspose(1, (4,4), strides=(2,2), padding='same', use_bias=False, activation='tanh'),
+            layers.BatchNormalization(),
+            layers.ELU()
+            # shape (28,28,1)
 
-    return model
+        ])
 
-gen = build_generator()
-noise = tf.random.normal([1,100])
-img = gen(noise, training=false)
-plt.imshow(generated_image[0, :,:,0], cmap='gray')
+        return model
+
+# gen = build_generator()
+# noise = tf.random.normal([1,100])
+# img = gen(noise, training=False)
+# print(img.shape)
+# plt.imshow(img[0, :,:,0], cmap='gray')
+# plt.show()
 
 
-def build_discriminator(self):
-    img_shape = (28, 28, 1)
-    
-    model = Sequential([
+    def build_discriminator(self):
+        img_shape = (28, 28, 1)
+        
+        model = Sequential([
 
-        layers.Conv2D(64, 4, strides=(2,2), padding='same', input_shape=img_shape),
-        layers.ELU(),
+            layers.Conv2D(64, 4, strides=(2,2), padding='same', input_shape=img_shape),
+            layers.ELU(),
 
-        layers.Conv2D(128, 4, strides=(2,2), padding='same'),
-        layers.BatchNormalization(),
-        layers.ELU(),
+            layers.Conv2D(128, 4, strides=(2,2), padding='same'),
+            layers.BatchNormalization(),
+            layers.ELU(),
 
-        layers.Conv2D(256, 4, strides=(1,1), padding='same', activation='sigmoid'),
+            layers.Conv2D(256, 4, strides=(1,1), padding='same', activation='sigmoid'),
 
-        layers.Flatten(),
-        layers.Dense(1)
+            layers.Flatten(),
+            layers.Dense(1)
+        ])
 
-    ])
+        return model
 
-    return model
+# disc = build_discriminator()
+# res = disc.predict(img)
+# print(res)
+
