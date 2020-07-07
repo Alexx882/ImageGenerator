@@ -5,6 +5,17 @@ import numpy as np
 
 class GAN:
     def __init__(self, shape, epochs=5, batch_size=128, iterations_generator=20, iterations_discriminator=20, summary=False, f_save=None):
+        '''
+        creates a GAN instance that can be trained to generate images in the specified size
+        @params:
+            shape                    - Required  : shape of the input/output images in the format channels_last
+            epochs                   - Optional  : number of times, the generator/discriminator are trained. 
+            batch_size               - Optional  : number of times, a training run in an epoch is executed. total number of individual training rounds is epochs*iterations_X
+            iterations_generator     - Optional  : how many iterations are executed for the generator
+            iterations_discriminator - Optional  : how many iterations are executed for the discriminator
+            summary                  - Optional  : should the summary of the models be printed to console
+            f_save                   - Optional  : function that gets executed once per epoch. it is in the form (GAN, int) -> void
+        '''
         self.width = shape[0]
         self.height = shape[1]
         self.channels = shape[2]
@@ -19,6 +30,7 @@ class GAN:
         self.initialized_discriminator = False
         self.initialized_generator = False
         self.initialized_combined_model = False
+        self.has_training_data = False
 
         self.optimizer = keras.optimizers.Adam(0.0002, 0.5)
 
@@ -35,14 +47,29 @@ class GAN:
         self.bake_combined()
     
     def set_discriminator(self, model):
+        '''
+        specifies the discriminator of the GAN network. sets initialized_discriminator to True which is necessary for baking the combined model
+        @params:
+            model - Required : network architecture for the discriminator
+        '''
         self.discriminator = model
         self.initialized_discriminator = True
 
     def set_generator(self, model):
+        '''
+        specifies the generator of the GAN network. sets initialized_generator to True which is necessary for baking the combined model
+        @params:
+            model - Required : network architecture for the generator
+        '''
         self.generator = model
         self.initialized_generator = True
     
     def bake_combined(self):
+        '''
+        specifies the generator of the GAN network. sets initialized_generator to True which is necessary for baking the combined model
+        @params:
+            model - Required : network architecture for the generator
+        '''
         if not self.initialized_discriminator or not self.initialized_generator:
             raise ValueError("Generator/Discriminator not initialized yet!")
 
@@ -53,8 +80,17 @@ class GAN:
 
         self.combined = keras.Model(z, valid)
         self.combined.compile(loss='binary_crossentropy', optimizer=self.optimizer)
+        self.initialized_combined_model = True
 
     def doctor(self):
+        '''
+        performs a self-check to debug if all necessary actions were done before starting to train/use the network
+        '''
+
+        print("##############")
+        print("# GAN DOCTOR #")
+        print("##############")
+
         s = "Initialized generator"
 
         if self.initialized_generator:
@@ -74,11 +110,21 @@ class GAN:
             print(s + " ... OK")
         else:
             print(s+" ... NOK")
+        
+        s = "Has training data"
+        if self.has_training_data:
+            print(s + " ... OK")
+        else:
+            print(s+" ... NOK")
 
     #
     # classifies images and tries to detect "fake" ones from the generator
     #
     def build_discriminator(self):
+        '''
+        builds a sample discriminator to be used in the GAN. The last layer has only 1 node and indicates if it is a fake 
+        image (0) or a real image (1)
+        '''
         model = keras.Sequential(
             [
                 keras.layers.Flatten(input_shape=self.shape),
@@ -107,6 +153,10 @@ class GAN:
     # transforms random noise into an image
     #
     def build_generator(self):
+        '''
+        builds a sample discriminator to be used in the GAN. The last layer has the shape of the image set in the constructor. 
+        it contains the generated image.
+        '''
         noise_shape = (100,)
 
         model = keras.Sequential(
@@ -129,6 +179,7 @@ class GAN:
             print("#############")
             print("# GENERATOR #")
             print("#############")
+            print("NOISE SHAPE: "+str(noise_shape))
             print(model.summary())
 
         noise = keras.Input(shape=noise_shape)
@@ -137,7 +188,16 @@ class GAN:
         return keras.Model(noise, img)
 
     def set_training_data(self, data):
+        '''
+        sets the training data that should be used.
+        @params:
+            data - Required : training data. the shape should have one dimension more (in the beginning) than the image shape 
+                              of the network. This dimension indicates the individual images. f.e. if images are 28x28 pixel 
+                              with only one channel, the shape of the training data should be (number_of_rows, 28, 28, 1)
+        '''
+
         self.training_data = data
+        self.has_training_data = True
 
     def train_discriminator(self, epoch):
         '''
@@ -190,10 +250,11 @@ class GAN:
 
     def train(self):
         '''
-        train discriminator/generator for the number of epochs
-        if a save function is specified, it will executed once per epoch
+        train discriminator/generator for the number of epochs. during each epoch, both are 
+        trained iterations_X times as specified in the constructor. if a save function is specified, 
+        it will be executed once per epoch
         '''
-
+        
         if self.f_save != None:
             self.f_save(self, 0)
 
@@ -215,5 +276,7 @@ class GAN:
         '''
         exports the discriminator/generator to the specified location
         '''
+        self.discriminator.trainable = True
+        self.generator.trainable = True
         self.discriminator.save(path+"/discriminator.h5")
-        self.discriminator.save(path+"/generator.h5")
+        self.generator.save(path+"/generator.h5")
