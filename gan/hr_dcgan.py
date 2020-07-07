@@ -18,7 +18,7 @@ class HR_DCGAN(GAN):
     '''
 
     def __init__(self, shape, f_save=None):
-        super().__init__(shape, f_save)
+        super().__init__(shape, f_save=f_save)
 
     def build_generator(self):
         noise_shape = (100,)
