@@ -33,7 +33,7 @@ if __name__ == "__main__":
     if not path.exists():
         path.mkdir(parents=True, exist_ok=True)
 
-    gan = gan.GAN((28,28,1), epochs=10, iterations_discriminator=10, iterations_generator=10, f_save= lambda gan, epoch : save_imgs(gan, epoch))
+    gan = gan.GAN((28,28,1), epochs=500, iterations_discriminator=6000, iterations_generator=6000, f_save= lambda gan, epoch : save_imgs(gan, epoch))
 
     model_g = Path("gan/models/mnist/generator.h5")
     model_d = Path("gan/models/mnist/discriminator.h5")
@@ -57,11 +57,10 @@ if __name__ == "__main__":
     gan.bake_combined()
     
     # labels are not needed as the GAN only distinguishes between "real" and "fake"
-    (x_train, _), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+    (x_train, _), (x_test, _) = tf.keras.datasets.mnist.load_data()
 
     # bring x_train into 4d shape (id, row, col, channel) and normalize values to [0;1]
-    x_train = [np.array(sample) for sample in x_train]
-    x_train = np.array([sample.reshape(28,28,1) for sample in x_train]) / 255.
+    x_train = np.array([np.array(sample).reshape((28,28,1)) for sample in x_train]) / 255.
     
     gan.set_training_data(x_train)
     gan.doctor()
