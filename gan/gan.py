@@ -125,13 +125,22 @@ class GAN:
         builds a sample discriminator to be used in the GAN. The last layer has only 1 node and indicates if it is a fake 
         image (0) or a real image (1)
         '''
+
         model = keras.Sequential(
             [
                 keras.layers.Flatten(input_shape=self.shape),
+                keras.layers.Dense(1024),
+                keras.layers.LeakyReLU(alpha=0.2),
+                keras.layers.Dropout(0.2),
+
                 keras.layers.Dense(512),
                 keras.layers.LeakyReLU(alpha=0.2),
+                keras.layers.Dropout(0.2),
+
                 keras.layers.Dense(256),
                 keras.layers.LeakyReLU(alpha=0.2),
+                keras.layers.Dropout(0.2),
+
                 keras.layers.Dense(1, activation='sigmoid'),
             ]
         )
@@ -163,12 +172,15 @@ class GAN:
             [
                 keras.layers.Dense(256, input_shape=noise_shape),
                 keras.layers.LeakyReLU(alpha=0.2),
+
                 keras.layers.BatchNormalization(momentum=0.8),
                 keras.layers.Dense(512),
                 keras.layers.LeakyReLU(alpha=0.2),
+
                 keras.layers.BatchNormalization(momentum=0.8),
                 keras.layers.Dense(1024),
                 keras.layers.LeakyReLU(alpha=0.2),
+
                 keras.layers.BatchNormalization(momentum=0.8),
                 keras.layers.Dense(np.prod(self.shape), activation='tanh'),
                 keras.layers.Reshape(self.shape),

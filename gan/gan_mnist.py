@@ -33,7 +33,7 @@ if __name__ == "__main__":
     if not path.exists():
         path.mkdir(parents=True, exist_ok=True)
 
-    gan = gan.GAN((28,28,1), epochs=500, iterations_discriminator=6000, iterations_generator=6000, f_save= lambda gan, epoch : save_imgs(gan, epoch))
+    gan = gan.GAN((28,28,1), epochs=500, batch_size=5000, iterations_discriminator=10, iterations_generator=10, f_save= lambda gan, epoch : save_imgs(gan, epoch))
 
     model_g = Path("gan/models/mnist/generator.h5")
     model_d = Path("gan/models/mnist/discriminator.h5")
