@@ -37,7 +37,7 @@ class GAN:
     def set_architectures(self):
         '''Applies the architectures defined in build_*() methods.'''
 
-        self.optimizer = keras.optimizers.Adam(0.0002, 0.5)
+        self.optimizer = keras.optimizers.Adam(0.0001, 0.9)
 
         self.set_discriminator(self.build_discriminator())
         self.discriminator.compile(

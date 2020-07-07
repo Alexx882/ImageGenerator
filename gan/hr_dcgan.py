@@ -17,8 +17,8 @@ class HR_DCGAN(GAN):
     J. D. Curtó, I. C. Zarza, Fernando de la Torre, Irwin King, Michael R. Lyu
     '''
 
-    def __init__(self, shape, f_save=None):
-        super().__init__(shape, f_save=f_save)
+    def __init__(self, shape, batch_size=128, f_save=None):
+        super().__init__(shape, batch_size=128, f_save=f_save)
 
     def build_generator(self):
         noise_shape = (100,)
