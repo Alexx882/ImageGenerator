@@ -26,8 +26,8 @@ def load_dataset():
     # MNIST dataset
     (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
 
-    x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], x_train.shape[2], 1)
-    x_train = x_train[:500,]
+    x_train = x_train.reshape(x_train.shape[0], x_train.shape[1], x_train.shape[2], 1) / 255.
+    # x_train = x_train[:500,]
     # x_train.shape
     return x_train
 
@@ -35,7 +35,8 @@ def load_dataset():
 def train(x_train):
     gan = DCGAN(shape=(28,28,1), f_save=lambda gan, n_epoch: save_imgs(gan, n_epoch))
     gan.set_training_data(x_train)
-    gan.train(epochs=5)
+    gan.train(epochs=40, iterations_generator=50, iterations_discriminator=10)
+    gan.train(epochs=40, iterations_generator=40, iterations_discriminator=10)
 
     gan.export('gan/models_dcgan/')
 

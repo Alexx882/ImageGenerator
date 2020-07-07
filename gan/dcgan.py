@@ -49,10 +49,11 @@ class DCGAN(GAN):
 
         ])
 
-        noise = keras.Input(shape=noise_shape)
-        img = model(noise)
+        return model
+        # noise = keras.Input(shape=noise_shape)
+        # img = model(noise)
 
-        return keras.Model(noise, img)
+        # return keras.Model(noise, img)
 
 # gen = build_generator()
 # noise = tf.random.normal([1,100])
@@ -79,10 +80,11 @@ class DCGAN(GAN):
             layers.Dense(1)
         ])
         
-        img = keras.Input(shape=img_shape)
-        validity = model(img)
+        return model
+        # img = keras.Input(shape=img_shape)
+        # validity = model(img)
         
-        return keras.Model(img, validity)
+        # return keras.Model(img, validity)
 
 # disc = build_discriminator()
 # res = disc.predict(img)

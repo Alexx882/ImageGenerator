@@ -4,14 +4,12 @@ import numpy as np
 
 
 class GAN:
-    def __init__(self, shape, batch_size=128, iterations_generator=20, iterations_discriminator=20, summary=False, f_save=None):
+    def __init__(self, shape, batch_size=128, summary=False, f_save=None):
         '''
         creates a GAN instance that can be trained to generate images in the specified size
         @params:
             shape                    - Required  : shape of the input/output images in the format channels_last
             batch_size               - Optional  : number of times, a training run in an epoch is executed. total number of individual training rounds is epochs*iterations_X
-            iterations_generator     - Optional  : how many iterations are executed for the generator
-            iterations_discriminator - Optional  : how many iterations are executed for the discriminator
             summary                  - Optional  : should the summary of the models be printed to console
             f_save                   - Optional  : function that gets executed once per epoch. it is in the form (GAN, int) -> void
         '''
@@ -20,8 +18,6 @@ class GAN:
         self.height = shape[1]
         self.channels = shape[2]
         self.batch_size = batch_size
-        self.iterations_generator = iterations_generator
-        self.iterations_discriminator = iterations_discriminator
         self.shape = (self.width, self.height, self.channels)
         self.summary = summary
         self.f_save = f_save
@@ -126,11 +122,10 @@ class GAN:
         else:
             print(s+" ... NOK")
 
-    #
-    # classifies images and tries to detect "fake" ones from the generator
-    #
     def build_discriminator(self):
         '''
+        classifies images and tries to detect "fake" ones from the generator
+
         builds a sample discriminator to be used in the GAN. The last layer has only 1 node and indicates if it is a fake 
         image (0) or a real image (1)
         '''
@@ -158,11 +153,10 @@ class GAN:
 
         return keras.Model(img, validity)
 
-    #
-    # transforms random noise into an image
-    #
     def build_generator(self):
         '''
+        transforms random noise into an image
+        
         builds a sample discriminator to be used in the GAN. The last layer has the shape of the image set in the constructor. 
         it contains the generated image.
         '''
@@ -208,13 +202,13 @@ class GAN:
         self.training_data = data
         self.has_training_data = True
 
-    def train_discriminator(self, epoch):
+    def train_discriminator(self, epoch, iterations):
         '''
         select a random half of the training data (real images) and train the discriminator on them (output 1)
         select an equally sized array of generated images (fake images) and train the discriminator on them (output 0)
         '''
 
-        for i in range(self.iterations_discriminator):
+        for i in range(iterations):
             np.random.shuffle(self.training_data)
 
             half_batch_size = int(self.batch_size / 2)
@@ -240,17 +234,19 @@ class GAN:
             print("EPOCH %d.%d [D] loss: %f, acc.: %.2f%%]" %
                   (epoch+1, i+1, d_loss[0], 100*d_loss[1]))
 
-    def train_generator(self, epoch):
+    def train_generator(self, epoch, iterations):
         '''
         create a vector of noise and feed it into the combined model with the aim 
         to get a classification of 1 (="real")
         '''
 
-        for i in range(self.iterations_generator):
-            batch_size = self.training_data.shape[0]
+        for i in range(iterations):
+            # shuffled for discriminator
+            batch_size = self.batch_size
             noise = np.random.normal(0, 1, (batch_size, 100))
 
-            valid_y = np.array([0.9] * batch_size)
+            valid_y = np.array([0.9] * batch_size) # should be detected as 1
+
             # freeze discriminator while generator is trained
             self.discriminator.trainable = False
             g_loss = self.combined.train_on_batch(noise, valid_y)
@@ -258,19 +254,23 @@ class GAN:
 
             print("EPOCH %d.%d [G] loss: %f]" % (epoch+1, i+1, g_loss))
 
-    def train(self, epochs=5):
+    def train(self, epochs=5, iterations_generator=20, iterations_discriminator=20):
         '''
         train discriminator/generator for the number of epochs. during each epoch, both are 
         trained iterations_X times as specified in the constructor. if a save function is specified, 
         it will be executed once per epoch
+
+        :param epochs: number of epochs to train
+        :param iterations_generator: iterations per epoch for gen
+        :param iterations_discriminator: iterations per epoch for disc
         '''
         
         if self.f_save != None:
             self.f_save(self, 0)
 
         for epoch in range(epochs):
-            self.train_discriminator(epoch)
-            self.train_generator(epoch)
+            self.train_discriminator(epoch, iterations_discriminator)
+            self.train_generator(epoch, iterations_generator)
 
             if self.f_save != None:
                 self.f_save(self, epoch+1)
