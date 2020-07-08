@@ -2,6 +2,7 @@ import gan
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
+import matplotlib.pyplot as plt
 
 class DEGAN(gan.GAN):
     def __init__(self, shape, f_save=None, summary=False, noise_size=100):
@@ -80,9 +81,26 @@ class DEGAN(gan.GAN):
 
         return keras.Model(noise, img)
 
+def save_imgs(gan, epoch):
+        r, c = 5, 5
+        noise = np.random.normal(0, 1, (r * c, 128))
+
+        gen_imgs = gan.generator.predict(noise)
+
+        fig, axs = plt.subplots(r, c)
+        cnt = 0
+        for i in range(r):
+            for j in range(c):
+                axs[i,j].imshow(gen_imgs[cnt, :,:,0], cmap='gray')
+                axs[i,j].axis('off')
+                cnt += 1
+        fig.savefig("gan/images/mnist_%d.png" % epoch)
+        plt.close()
+
+
 if __name__ == "__main__":
     # instantiate on images from MNIST
-    degan = DEGAN((28,28,1), summary=True, noise_size=128)
+    degan = DEGAN((28,28,1), summary=True, noise_size=128, f_save= lambda gan, epoch : save_imgs(gan, epoch))
 
     # labels are not needed as the GAN only distinguishes between "real" and "fake"
     (x_train, _), (x_test, _) = tf.keras.datasets.mnist.load_data()
@@ -92,4 +110,4 @@ if __name__ == "__main__":
     
     degan.set_training_data(x_train)
     degan.doctor()
-    degan.train()
+    degan.train(epochs=100,iterations_discriminator=20,iterations_generator=40)
