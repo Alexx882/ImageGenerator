@@ -8,7 +8,7 @@ GEN_FILENAME = '/generator.h5'
 
 class GAN:
 
-    def __init__(self, shape, batch_size=128, summary=False, f_save=None):
+    def __init__(self, shape, batch_size=128, summary=False, f_save=None, noise_size=100):
         '''
         creates a GAN instance that can be trained to generate images in the specified size
         @params:
@@ -16,6 +16,7 @@ class GAN:
             batch_size               - Optional  : number of times, a training run in an epoch is executed. total number of individual training rounds is epochs*iterations_X
             summary                  - Optional  : should the summary of the models be printed to console
             f_save                   - Optional  : function that gets executed once per epoch. it is in the form (GAN, int) -> void
+            noise_size               - Optional  : dimensionality of noise-vector used by the generator
         '''
         # apply const arguments
         self.width = shape[0]
@@ -25,6 +26,7 @@ class GAN:
         self.shape = (self.width, self.height, self.channels)
         self.summary = summary
         self.f_save = f_save
+        self.noise_size = noise_size
         
         self.initialized_discriminator = False
         self.initialized_generator = False
@@ -82,7 +84,7 @@ class GAN:
         if not self.initialized_discriminator or not self.initialized_generator:
             raise ValueError("Generator/Discriminator not initialized yet!")
 
-        z = keras.Input(shape=(100,))
+        z = keras.Input(shape=(self.noise_size,))
         img = self.generator(z)
 
         valid = self.discriminator(img)
@@ -173,7 +175,7 @@ class GAN:
         builds a sample discriminator to be used in the GAN. The last layer has the shape of the image set in the constructor. 
         it contains the generated image.
         '''
-        noise_shape = (100,)
+        noise_shape = (self.noise_size,)
 
         model = keras.Sequential(
             [
@@ -232,7 +234,8 @@ class GAN:
             # batch2_real = self.training_data[:half_batch_size, :, :, :] # other half of the samples
 
             # creates a half_batch_size|100 array of noise
-            noise = np.random.normal(0, 1, (half_batch_size, 100))
+            noise = np.random.normal(0, 1, (half_batch_size, self.noise_size))
+            print(noise.shape)
 
             batch_fake = self.generator.predict(noise)
 
@@ -259,7 +262,7 @@ class GAN:
         for i in range(iterations):
             # shuffled for discriminator
             batch_size = self.batch_size
-            noise = np.random.normal(0, 1, (batch_size, 100))
+            noise = np.random.normal(0, 1, (batch_size, self.noise_size))
 
             target_y = np.array([1.] * batch_size) # should be detected as 1
 
@@ -295,7 +298,7 @@ class GAN:
         '''
         samples a noise-vector and returns the outputs of the last layer of the generator
         '''
-        noise = np.random.normal(0, 1, (1, 100))
+        noise = np.random.normal(0, 1, (1, self.noise_size))
         return self.generator.predict(noise)
 
     def export(self, path):
