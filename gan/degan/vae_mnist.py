@@ -60,8 +60,8 @@ def test():
 
 if __name__ == "__main__":
     # map the MNIST images (28x28 with only 1 channel) to a space of 32 floats
-    vae = vae.VAE((28, 28, 1), 784, summary=True)
-    # vae.import_models("gan/degan/vae")
+    vae = vae.VAE((28, 28, 1), 128, summary=True)
+    vae.import_models("gan/degan/vae")
 
-    train(vae)
+    # train(vae)
     visualize(vae)

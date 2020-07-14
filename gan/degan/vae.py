@@ -8,7 +8,6 @@ ENC_FILENAME = "/encoder.h5"
 DEC_FILENAME = "/decoder.h5"
 AUT_FILENAME = "/autoencoder.h5"
 
-
 class VAE:
     E_LAST_LAYER = "latent_layer"
 
@@ -87,7 +86,7 @@ class VAE:
 
         self.autoencoder.compile("nadam", loss="binary_crossentropy")
 
-    def import_models(self, path, force=False):
+    def import_models(self, path, force=False, compile=True):
         root = Path(path)
 
         if not root.exists():
@@ -116,9 +115,9 @@ class VAE:
             else:
                 return
 
-        self.encoder = keras.models.load_model(str(enc))
-        self.decoder = keras.models.load_model(str(dec))
-        self.autoencoder = keras.models.load_model(str(aut))
+        self.encoder = keras.models.load_model(str(enc), compile=compile)
+        self.decoder = keras.models.load_model(str(dec), compile=compile)
+        self.autoencoder = keras.models.load_model(str(aut), compile=compile)
 
     def export(self, path):
         root = Path(path)

@@ -75,6 +75,16 @@ class GAN:
         self.generator = model
         self.initialized_generator = True
     
+    def sample_noise(self, n_rows):
+        '''
+        samples a noise vector to be used by the generator
+        @params:
+            n_rows - Required : number of rows the resulting vector should have
+        '''
+        noise = np.random.normal(0, 1, (n_rows, self.noise_size))
+
+        return noise
+
     def bake_combined(self):
         '''
         specifies the generator of the GAN network. sets initialized_generator to True which is necessary for baking the combined model
@@ -234,8 +244,7 @@ class GAN:
             # batch2_real = self.training_data[:half_batch_size, :, :, :] # other half of the samples
 
             # creates a half_batch_size|100 array of noise
-            noise = np.random.normal(0, 1, (half_batch_size, self.noise_size))
-            print(noise.shape)
+            noise = self.sample_noise(half_batch_size)
 
             batch_fake = self.generator.predict(noise)
 
@@ -262,7 +271,7 @@ class GAN:
         for i in range(iterations):
             # shuffled for discriminator
             batch_size = self.batch_size
-            noise = np.random.normal(0, 1, (batch_size, self.noise_size))
+            noise = self.sample_noise(batch_size)
 
             target_y = np.array([1.] * batch_size) # should be detected as 1
 
@@ -298,7 +307,7 @@ class GAN:
         '''
         samples a noise-vector and returns the outputs of the last layer of the generator
         '''
-        noise = np.random.normal(0, 1, (1, self.noise_size))
+        noise = self.sample_noise(1)
         return self.generator.predict(noise)
 
     def export(self, path):

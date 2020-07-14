@@ -1,12 +1,14 @@
-import gan
+from degan import vae
+import gan as gan
 import tensorflow as tf
 from tensorflow import keras
 import numpy as np
 import matplotlib.pyplot as plt
 
-class DEGAN(gan.GAN):
+class DEGAN(gan.GAN): 
     def __init__(self, shape, f_save=None, summary=False, noise_size=100):
         super().__init__(shape, f_save=f_save, summary=summary, noise_size=noise_size)
+        self.ae = None
     
     def bake_combined(self):
         if not self.initialized_discriminator or not self.initialized_generator:
@@ -20,6 +22,18 @@ class DEGAN(gan.GAN):
         self.combined = keras.Model(z, valid)
         self.combined.compile(loss='binary_crossentropy', optimizer=self.optimizer)
         self.initialized_combined_model = True
+    
+    def sample_noise(self, n_rows):
+        if self.ae == None:
+            ae = vae.VAE(self.shape, self.noise_size)
+            ae.import_models("gan/degan/vae", compile=False)
+        
+        noise = super().sample_noise(n_rows)
+
+        noise_decoded = ae.decoder.predict(noise)
+        noise_encoded = ae.encoder.predict(noise_decoded)
+
+        return noise_encoded
 
     def build_discriminator(self):
         model = keras.Sequential(
