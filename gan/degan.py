@@ -124,4 +124,4 @@ if __name__ == "__main__":
     
     degan.set_training_data(x_train)
     degan.doctor()
-    degan.train(epochs=100,iterations_discriminator=20,iterations_generator=40)
+    degan.train(epochs=128,iterations_discriminator=40,iterations_generator=40)

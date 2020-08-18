@@ -48,7 +48,7 @@ def visualize(vae):
 
 def train(vae):
     (x_train, x_test) = load_prepared_data()
-    vae.train(x_train, x_test, 50, 256)
+    vae.train(x_train, x_test, 128, 256)
     vae.export("gan/degan/vae")
 
 
@@ -63,5 +63,5 @@ if __name__ == "__main__":
     vae = vae.VAE((28, 28, 1), 128, summary=True)
     vae.import_models("gan/degan/vae")
 
-    # train(vae)
+    train(vae)
     visualize(vae)
