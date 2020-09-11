@@ -15,8 +15,8 @@ class DCGAN(GAN):
     J. D. Curtó, I. C. Zarza, Fernando de la Torre, Irwin King, Michael R. Lyu
     '''
 
-    def __init__(self, shape, f_save=None):
-        super().__init__(shape, f_save=f_save)
+    def __init__(self, shape, f_save=None, train_combined=False):
+        super().__init__(shape, f_save=f_save, train_combined=train_combined)
 
     def build_generator(self):
         noise_shape = (100,)
@@ -36,7 +36,6 @@ class DCGAN(GAN):
 
             # stride 2 -> larger image
             # thiccness 128 -> channels
-            # TODO read about Conv2DTranspose
             layers.Conv2DTranspose(64, (4,4), strides=(2,2), padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.LeakyReLU(),
@@ -75,7 +74,7 @@ class DCGAN(GAN):
             # layers.Conv2D(256, 4, strides=(1,1), padding='same', activation='sigmoid'),
 
             layers.Flatten(),
-            layers.Dense(1)
+            layers.Dense(1, activation=tf.nn.sigmoid)
         ])
         
         return model
