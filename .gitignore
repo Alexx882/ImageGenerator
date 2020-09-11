@@ -1,11 +1,15 @@
 **/__pycache__
 **/.vscode
 **/venv
+**/.idea
 
-.idea/
+/images/*
+/images_original/*
 
-images/
-images_original/
+/gan/models*/*
+/gan/results*/*
 
-gan/models*/
-gan/results*/
+# keep the DCGAN progress gif
+!/gan/models/dcgan
+/gan/models/dcgan/*
+!/gan/models/dcgan/progress.gif

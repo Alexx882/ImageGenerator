@@ -38,7 +38,6 @@ class HR_DCGAN(GAN):
 
             # stride 2 -> larger image
             # thiccness 128 -> channels
-            # TODO read about Conv2DTranspose
             layers.Conv2DTranspose(64, (4,4), strides=(2,2), padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.ELU(),
