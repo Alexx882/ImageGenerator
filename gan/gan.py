@@ -34,6 +34,10 @@ class GAN:
 
         self.set_architectures()
     
+    def set_trainable(self, model: keras.Model, value: bool):
+        for layer in model.layers: 
+            layer.trainable = value
+
     def set_architectures(self):
         '''Applies the architectures defined in build_*() methods.'''
 
@@ -45,14 +49,13 @@ class GAN:
             optimizer=self.optimizer,
             metrics=['accuracy']
         )
-        # self.discriminator.trainable = False
 
         self.set_generator(self.build_generator())
         self.generator.compile(
             loss='binary_crossentropy', 
-            optimizer=self.optimizer
+            optimizer=self.optimizer,
+            metrics=['accuracy']
         )
-        # self.generator.trainable = False
 
         self.bake_combined()
     
@@ -89,7 +92,8 @@ class GAN:
         valid = self.discriminator(img)
 
         self.combined = keras.Model(z, valid)
-        self.combined.compile(loss='binary_crossentropy', optimizer=self.optimizer)
+        loss = keras.losses.BinaryCrossentropy(from_logits=False)
+        self.combined.compile(loss=loss, optimizer=self.optimizer)
         self.initialized_combined_model = True
 
     def doctor(self):
@@ -222,11 +226,7 @@ class GAN:
 
             # creates a half_batch_size|100 array of noise
             noise = np.random.normal(0, 1, (half_batch_size, 100))
-
             batch_fake = self.generator.predict(noise)
-
-            # unfreeze discriminator for training
-            self.discriminator.trainable = True
 
             data = list(zip(batch1_real, np.ones(half_batch_size)))
             data.extend(list(zip(batch_fake, np.zeros(half_batch_size))))
@@ -236,9 +236,11 @@ class GAN:
             features = np.asarray(features)
             labels = np.asarray(labels)
 
+            # unfreeze discriminator for training
+            self.set_trainable(self.generator, False)
+            self.set_trainable(self.discriminator, True)
             d_loss = self.discriminator.train_on_batch(features, labels)
-
-            self.discriminator.trainable = False
+            self.set_trainable(self.discriminator, False)
 
             print(f"EPOCH {epoch+1}.{i+1} [D] loss: {d_loss[0]} ; acc: {100*d_loss[1]}")
 
@@ -253,14 +255,16 @@ class GAN:
             batch_size = self.batch_size
             noise = np.random.normal(0, 1, (batch_size, 100))
 
-            target_y = np.array([1.] * batch_size) # should be detected as 1
+            target_y = np.array([1.] * batch_size) # should be detected as 1 for generator training
 
             # freeze discriminator while generator is trained
-            self.discriminator.trainable = False
+            self.set_trainable(self.discriminator, False)
+            self.set_trainable(self.generator, True)
             g_loss = self.combined.train_on_batch(noise, target_y)
-            # self.generator.trainable = False
+            self.set_trainable(self.generator, False)
 
-            print("EPOCH %d.%d [G] loss: %f]" % (epoch+1, i+1, g_loss))
+            # print(f"EPOCH {epoch+1}.{i+1} [G] loss: {g_loss[0]} ; acc: {100*g_loss[1]}")
+            print(f"EPOCH {epoch+1}.{i+1} [G] loss: {g_loss}")
 
     def train(self, epochs=5, iterations_generator=20, iterations_discriminator=20):
         '''
