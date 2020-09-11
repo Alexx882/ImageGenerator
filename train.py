@@ -11,6 +11,9 @@ import shutil
 ARCHITECTURE_NAME = 'hr_dcgan'
 
 def save_imgs(gan, epoch):
+        if epoch % 50 != 0:
+            return 
+            
         r, c = 5, 5
         noise = np.random.normal(0, 1, (r * c, 100))
 
@@ -39,11 +42,11 @@ def load_dataset():
 
 
 def train(x_train):
-    gan = HR_DCGAN(shape=(28,28,1), f_save=lambda gan, n_epoch: save_imgs(gan, n_epoch))
+    gan = HR_DCGAN(shape=(28,28,1), batch_size=512, f_save=lambda gan, n_epoch: save_imgs(gan, n_epoch))
     gan.import_(f'gan/models_{ARCHITECTURE_NAME}/', silent=True)
 
     gan.set_training_data(x_train)
-    gan.train(epochs=20, iterations_generator=40, iterations_discriminator=40)
+    gan.train(epochs=100, iterations_generator=2, iterations_discriminator=2)
 
     gan.export(f'gan/models_{ARCHITECTURE_NAME}/')
 
