@@ -2,206 +2,69 @@ import tensorflow as tf
 import numpy as np
 import os
 import random
+from pathlib import Path
+from collections import deque
+import time
+from IPython import display
+import matplotlib.pyplot as plt
+from abc import ABC, abstractmethod
+import imageio
+import glob 
+import tensorflow_docs.vis.embed as embed # pip install git+https://github.com/tensorflow/docs
 
 DISC_FILENAME = '/discriminator.h5'
 GEN_FILENAME = '/generator.h5'
 
-class GAN:
+class GAN(ABC):
 
-    def __init__(self, shape, batch_size=128, summary=False, f_save=None, train_combined=True):
+    bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+
+    def __init__(self, shape, path, batch_size=256):
         '''
         creates a GAN instance that can be trained to generate images in the specified size
         @params:
             shape                    - Required  : shape of the input/output images in the format channels_last
+            path                     - Required  : location on disc to store progress images and model on export 
             batch_size               - Optional  : number of times, a training run in an epoch is executed. total number of individual training rounds is epochs*iterations_X
-            summary                  - Optional  : should the summary of the models be printed to console
-            f_save                   - Optional  : function that gets executed once per epoch. it is in the form (GAN, int) -> void
-            train_combined           - Optional  : Implicit training with a combined network if true
         '''
-        # apply const arguments
-        self.width = shape[0]
-        self.height = shape[1]
-        self.channels = shape[2]
+        self.shape = shape
         self.batch_size = batch_size
-        self.shape = (self.width, self.height, self.channels)
-        self.summary = summary
-        self.f_save = f_save
+        self.path = path
+        Path(path).mkdir(parents=True, exist_ok=True)
         
-        self.initialized_discriminator = False
-        self.initialized_generator = False
-        self.initialized_combined_model = False
+        # used for visualization
+        self.num_examples_to_generate = 16
+        self.seed = tf.random.normal([self.num_examples_to_generate, self.get_noise_dim()])
+        
         self.has_training_data = False
+        self.set_architecture()
 
-        self.set_architectures(compile=train_combined)
-    
-    def set_trainable(self, model: tf.keras.Model, value: bool):
-        '''Updates the trainable property for all layers in model to value.'''
-        for layer in model.layers: 
-            layer.trainable = value
+    def set_architecture(self):
+        '''Applies the architecture from the implementing strategy.'''
+        self.d_optimizer = tf.keras.optimizers.Adam(1e-4) 
+        self.g_optimizer = tf.keras.optimizers.Adam(1e-4)
 
-    def set_architectures(self, compile=True):
-        '''Applies the architectures defined in build_*() methods.'''
+        self.discriminator = self.build_discriminator()
+        self.generator = self.build_generator()
 
-        self.optimizer = tf.keras.optimizers.Adam(1e-5) # tf.keras.optimizers.Adam(0.0001, 0.9)
+#region Neural Network Details
 
-        self.set_discriminator(self.build_discriminator())
-        if compile:
-            self.discriminator.compile(
-                loss='binary_crossentropy',
-                optimizer=self.optimizer,
-                metrics=['accuracy']
-            )
+    @abstractmethod
+    def build_discriminator(self) -> tf.keras.Model:
+        '''This method must return the model for the Discriminator.'''
+        pass
 
-        self.set_generator(self.build_generator())
-        if compile:
-            self.generator.compile(
-                loss='binary_crossentropy', 
-                optimizer=self.optimizer,
-                metrics=['accuracy']
-            )
+    @abstractmethod
+    def build_generator(self) -> tf.keras.Model:
+        '''This method must return the model for the Generator.'''
+        pass
 
-        if compile:
-            self.bake_combined()
-    
-    def set_discriminator(self, model):
-        '''
-        specifies the discriminator of the GAN network. sets initialized_discriminator to True which is necessary for baking the combined model
-        @params:
-            model - Required : network architecture for the discriminator
-        '''
-        self.discriminator = model
-        self.initialized_discriminator = True
+    @abstractmethod
+    def get_noise_dim(self) -> int:
+        '''This method must return the 1d size of the noise, eg. 100.'''
+        pass
 
-    def set_generator(self, model):
-        '''
-        specifies the generator of the GAN network. sets initialized_generator to True which is necessary for baking the combined model
-        @params:
-            model - Required : network architecture for the generator
-        '''
-        self.generator = model
-        self.initialized_generator = True
-    
-    def bake_combined(self):
-        '''
-        specifies the generator of the GAN network. sets initialized_generator to True which is necessary for baking the combined model
-        @params:
-            model - Required : network architecture for the generator
-        '''
-        if not self.initialized_discriminator or not self.initialized_generator:
-            raise ValueError("Generator/Discriminator not initialized yet!")
-
-        z = tf.keras.Input(shape=(100,))
-        img = self.generator(z)
-
-        valid = self.discriminator(img)
-
-        self.combined = tf.keras.Model(z, valid)
-        loss = tf.keras.losses.BinaryCrossentropy(from_logits=False)
-        self.combined.compile(loss=loss, optimizer=self.optimizer)
-        self.initialized_combined_model = True
-
-    def doctor(self):
-        '''
-        performs a self-check to debug if all necessary actions were done before starting to train/use the network
-        '''
-
-        print("##############")
-        print("# GAN DOCTOR #")
-        print("##############")
-
-        s = "Initialized generator"
-
-        if self.initialized_generator:
-            print(s + " ... OK")
-        else:
-            print(s+" ... NOK")
-        
-        s = "Initialized discriminator"
-
-        if self.initialized_discriminator:
-            print(s + " ... OK")
-        else:
-            print(s+" ... NOK")
-        
-        s = "Baked combined model"
-        if self.initialized_combined_model:
-            print(s + " ... OK")
-        else:
-            print(s+" ... NOK")
-        
-        s = "Has training data"
-        if self.has_training_data:
-            print(s + " ... OK")
-        else:
-            print(s+" ... NOK")
-
-    def build_discriminator(self):
-        '''
-        classifies images and tries to detect "fake" ones from the generator
-
-        builds a sample discriminator to be used in the GAN. The last layer has only 1 node and indicates if it is a fake 
-        image (0) or a real image (1)
-        '''
-        model = tf.keras.Sequential(
-            [
-                tf.keras.layers.Flatten(input_shape=self.shape),
-                tf.keras.layers.Dense(512),
-                tf.keras.layers.LeakyReLU(alpha=0.2),
-                tf.keras.layers.Dense(256),
-                tf.keras.layers.LeakyReLU(alpha=0.2),
-                tf.keras.layers.Dense(1, activation='sigmoid'),
-            ]
-        )
-
-        img = tf.keras.Input(shape=self.shape)
-        validity = model(img)
-
-        if self.summary:
-            print("#################")
-            print("# DISCRIMINATOR #")
-            print("#################")
-            print("INPUT SHAPE: "+str(self.shape))
-
-            print(model.summary())
-
-        return tf.keras.Model(img, validity)
-
-    def build_generator(self):
-        '''
-        transforms random noise into an image
-        
-        builds a sample discriminator to be used in the GAN. The last layer has the shape of the image set in the constructor. 
-        it contains the generated image.
-        '''
-        noise_shape = (100,)
-
-        model = tf.keras.Sequential(
-            [
-                tf.keras.layers.Dense(256, input_shape=noise_shape),
-                tf.keras.layers.LeakyReLU(alpha=0.2),
-                tf.keras.layers.BatchNormalization(momentum=0.8),
-                tf.keras.layers.Dense(512),
-                tf.keras.layers.LeakyReLU(alpha=0.2),
-                tf.keras.layers.BatchNormalization(momentum=0.8),
-                tf.keras.layers.Dense(1024),
-                tf.keras.layers.LeakyReLU(alpha=0.2),
-                tf.keras.layers.BatchNormalization(momentum=0.8),
-                tf.keras.layers.Dense(np.prod(self.shape), activation='tanh'),
-                tf.keras.layers.Reshape(self.shape),
-            ]
-        )
-
-        if self.summary:
-            print("#############")
-            print("# GENERATOR #")
-            print("#############")
-            print("NOISE SHAPE: "+str(noise_shape))
-            print(model.summary())
-
-        noise = tf.keras.Input(shape=noise_shape)
-        img = model(noise)
-
-        return tf.keras.Model(noise, img)
+#endregion Neural Network Details
 
 #region Training
 
@@ -213,147 +76,136 @@ class GAN:
                               of the network. This dimension indicates the individual images. f.e. if images are 28x28 pixel 
                               with only one channel, the shape of the training data should be (number_of_rows, 28, 28, 1)
         '''
-
-        self.training_data = data
+        self.training_data_batches = tf.data.Dataset.from_tensor_slices(data).shuffle(data.shape[0]).batch(self.batch_size)
         self.has_training_data = True
-
-    def get_real_data_sample(self):
-        '''Returns a sample of the real training data with size [self.batch_size / 2].'''
-        np.random.shuffle(self.training_data)
-
-        half_batch_size = int(self.batch_size / 2)
-        batch_real = self.training_data[:half_batch_size, :, :, :]
-        return batch_real
-
-#region Explicit Training
-
-    bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
     @staticmethod
     def discriminator_loss(real_output, generated_output):
         '''The discriminator loss function, where real output should be classified as 1 and generated as 0.'''
-        return GAN.bce(tf.ones_like(real_output), real_output) \
-            + GAN.bce(tf.zeros_like(generated_output), generated_output)
+        return GAN.bce(tf.ones_like(real_output), real_output) + GAN.bce(tf.zeros_like(generated_output), generated_output)
 
     @staticmethod
     def generator_loss(generated_output):
         '''The generator loss function, where generated output should be classified as 0.'''
         return GAN.bce(tf.ones_like(generated_output), generated_output)
 
-    # @tf.function
-    def train_step(self):
+    @tf.function
+    def train_step(self, real_data_batch) -> '(disc_loss, gen_loss)':
         # prepare real data and noise input
-        real_data = self.get_real_data_sample()
-        noise_vector = tf.random.normal(mean=0, stddev=1, shape=(real_data.shape[0], 100))
+        noise = tf.random.normal([self.batch_size, self.get_noise_dim()])
 
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             # Predict images with G
-            gen_data = self.generator(noise_vector, training=True)
+            gen_data = self.generator(noise, training=True)
 
             # Predict classes with D
-            d_fake_data = self.discriminator(gen_data, training=True)
-            d_real_data = self.discriminator(real_data, training=True)
+            d_real_predicted_labels = self.discriminator(real_data_batch, training=True)
+            d_fake_predicted_labels = self.discriminator(gen_data, training=True)
 
             # Compute losses
-            d_loss_value = GAN.discriminator_loss(real_output=d_real_data, generated_output=d_fake_data)
-            g_loss_value = GAN.generator_loss(generated_output=d_fake_data)
+            d_loss_value = GAN.discriminator_loss(real_output=d_real_predicted_labels, generated_output=d_fake_predicted_labels)
+            g_loss_value = GAN.generator_loss(generated_output=d_fake_predicted_labels)
 
-        # Now that we have computed the losses, we can compute the gradients 
-        # (using the tape) and optimize the networks
+        # Now that we have computed the losses, we can compute the gradients (using the tapes)
         gradients_of_discriminator = disc_tape.gradient(d_loss_value, self.discriminator.trainable_variables)
         gradients_of_generator = gen_tape.gradient(g_loss_value, self.generator.trainable_variables)
 
         # Apply gradients to variables
-        self.optimizer.apply_gradients(zip(gradients_of_discriminator, self.discriminator.trainable_variables))
-        self.optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
+        self.d_optimizer.apply_gradients(zip(gradients_of_discriminator, self.discriminator.trainable_variables))
+        self.g_optimizer.apply_gradients(zip(gradients_of_generator, self.generator.trainable_variables))
 
         return d_loss_value, g_loss_value
 
-    def train_explicit(self, epochs):
-        for i in range(epochs):
-            d_loss, g_loss = self.train_step()
-            print(f"Iteration {i}: Discriminator loss: {d_loss}, Generator loss: {g_loss}")
-
-#endregion Explicit Training
-
-#region Combined Training
-
-    def _train_discriminator(self, epoch, iterations):
-        '''
-        select a random half of the training data (real images) and train the discriminator on them (output 1)
-        select an equally sized array of generated images (fake images) and train the discriminator on them (output 0)
-        '''
-
-        for i in range(iterations):
-            batch1_real = self.get_real_data_sample()
-            half_batch_size = batch1_real.shape[0]
-
-            # creates a [half_batch_size, 100] array of noise
-            noise = np.random.normal(0, 1, (half_batch_size, 100))
-            batch_fake = self.generator.predict(noise)
-
-            data = list(zip(batch1_real, np.ones(half_batch_size)))
-            data.extend(list(zip(batch_fake, np.zeros(half_batch_size))))
-            random.shuffle(data)
-
-            features, labels = zip(*data)
-            features = np.asarray(features)
-            labels = np.asarray(labels)
-
-            # unfreeze discriminator for training
-            self.set_trainable(self.generator, False)
-            self.set_trainable(self.discriminator, True)
-            d_loss = self.discriminator.train_on_batch(features, labels)
-            self.set_trainable(self.discriminator, False)
-
-            print(f"EPOCH {epoch+1}.{i+1} [D] loss: {d_loss[0]} ; acc: {100*d_loss[1]}")
-
-    def _train_generator(self, epoch, iterations):
-        '''
-        create a vector of noise and feed it into the combined model with the aim 
-        to get a classification of 1 (="real")
-        '''
-
-        for i in range(iterations):
-            # shuffled for discriminator
-            batch_size = self.batch_size
-            noise = np.random.normal(0, 1, (batch_size, 100))
-
-            target_y = np.array([.8] * batch_size) # should be detected as 1 for generator training
-
-            # freeze discriminator while generator is trained
-            self.set_trainable(self.discriminator, False)
-            self.set_trainable(self.generator, True)
-            g_loss = self.combined.train_on_batch(noise, target_y)
-            self.set_trainable(self.generator, False)
-
-            # print(f"EPOCH {epoch+1}.{i+1} [G] loss: {g_loss[0]} ; acc: {100*g_loss[1]}")
-            print(f"EPOCH {epoch+1}.{i+1} [G] loss: {g_loss}")
-
-    def train(self, epochs=5, iterations_generator=20, iterations_discriminator=20):
-        '''
-        train discriminator/generator for the number of epochs. during each epoch, both are 
-        trained iterations_X times as specified in the constructor. if a save function is specified, 
-        it will be executed once per epoch
-
-        :param epochs: number of epochs to train
-        :param iterations_generator: iterations per epoch for gen
-        :param iterations_discriminator: iterations per epoch for disc
-        '''
-        
-        if self.f_save != None:
-            self.f_save(self, 0)
+    def train(self, epochs):
+        if not self.has_training_data:
+            raise RuntimeError("Training Data is not set.")
 
         for epoch in range(epochs):
-            self._train_discriminator(epoch, iterations_discriminator)
-            self._train_generator(epoch, iterations_generator)
+            start = time.time()
 
-            if self.f_save != None:
-                self.f_save(self, epoch+1)
+            for image_batch in self.training_data_batches:
+                self.train_step(image_batch)
 
-#endregion Combined Training
+            # Produce images for the GIF as we go
+            display.clear_output(wait=True)
+            self._generate_and_save_images(self.generator, epoch + 1, self.seed)
 
-#endregion Training
+            print ('Time for epoch {} is {} sec'.format(epoch + 1, time.time()-start))
+
+        # Generate after the final epoch
+        display.clear_output(wait=True)
+        self._generate_and_save_images(self.generator, epochs, self.seed)
+
+    def _generate_and_save_images(self, model, epoch, test_input):
+        # Notice `training` is set to False.
+        # This is so all layers run in inference mode (batchnorm).
+        predictions = model(test_input, training=False)
+
+        fig = plt.figure(figsize=(4,4))
+
+        for i in range(predictions.shape[0]):
+            plt.subplot(4, 4, i+1)
+            plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
+            plt.axis('off')
+
+        plt.savefig(os.path.normpath(self.path + '/images/image_at_epoch_{:04d}.png'.format(epoch)))
+        plt.show()
+
+    def generate_gif(self):
+        anim_file = os.path.normpath(self.path + '/progress.gif')
+
+        with imageio.get_writer(anim_file, mode='I') as writer:
+            filenames = glob.glob(os.path.normpath(self.path + '/images/image*.png'))
+            filenames = sorted(filenames)
+            for filename in filenames:
+                image = imageio.imread(filename)
+                writer.append_data(image)
+            image = imageio.imread(filename)
+            writer.append_data(image)
+
+        embed.embed_file(anim_file)
+
+    def train_explicit(self, epochs):
+        # TODO check if needed and fix
+        window_size = 5+1
+        train_disc = train_gen = True
+        iterations = 20
+        # calculate a floating window to help decide number of iterations
+        disc_losses_window = deque(maxlen=window_size)
+        gen_losses_window = deque(maxlen=window_size)
+
+        cur_epoch = 0
+        while cur_epoch < epochs:
+
+            for _ in range(iterations):
+                current_disc_loss, current_gen_loss = self.train_step(train_disc, train_gen)
+
+            print(f"[E {cur_epoch}] Trained {iterations} iterations: Final Discriminator loss: {current_disc_loss}, Final Generator loss: {current_gen_loss}")
+            disc_losses_window.append(current_disc_loss)
+            gen_losses_window.append(current_gen_loss)
+
+            # decide for the next training:
+            # if both got worse or got better -> (continue to) train both
+            # if only one part got worse -> just train that part
+            disc_got_worse: bool = current_disc_loss >= max(disc_losses_window)
+            gen_got_worse: bool = current_gen_loss >= max(gen_losses_window)
+
+            train_disc = train_gen = True
+            iterations = 20
+
+            if not (disc_got_worse ^ gen_got_worse):
+                cur_epoch += 1
+
+            if disc_got_worse and not gen_got_worse:
+                train_disc = True
+                train_gen = False
+                iterations = 5
+                print(f"Discriminator got worse, explicit training with {iterations} iterations")
+            if gen_got_worse and not disc_got_worse:
+                train_disc = False
+                train_gen = True
+                iterations = 5
+                print(f"Generator got worse, explicit training with {iterations} iterations")
 
     def generate(self):
         '''
@@ -362,22 +214,27 @@ class GAN:
         noise = np.random.normal(0, 1, (1, 100))
         return self.generator.predict(noise)
 
+#endregion Training
+
 #region Import / Export
-    def export(self, path):
+
+    def export(self):
         '''
         exports the discriminator/generator to the specified location
         '''
         self.discriminator.trainable = True
         self.generator.trainable = True
-        self.discriminator.save(os.path.normpath(path + DISC_FILENAME))
-        self.generator.save(os.path.normpath(path + GEN_FILENAME))
+        self.discriminator.save(os.path.normpath(self.path + DISC_FILENAME))
+        self.generator.save(os.path.normpath(self.path + GEN_FILENAME))
 
-    def import_(self, path, silent=False):
+    def import_(self, path=None, silent=False):
         ''' 
         Imports the disc/gen from the specified location. 
         
         :param path: 
         '''
+        if path is None:
+            path = self.path
 
         disc_path = os.path.normpath(path + DISC_FILENAME)
         gen_path = os.path.normpath(path + GEN_FILENAME)
@@ -391,7 +248,7 @@ class GAN:
                 raise ValueError(err)
 
         print("Loading models from file")
-        self.set_discriminator(tf.keras.models.load_model(disc_path))
-        self.set_generator(tf.keras.models.load_model(gen_path))
-        self.bake_combined()
+        self.discriminator = (tf.keras.models.load_model(disc_path))
+        self.generator = (tf.keras.models.load_model(gen_path))
+
 #endregion Import / Export
