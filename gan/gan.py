@@ -29,7 +29,7 @@ class GAN(ABC):
         '''
         self.batch_size = batch_size
         self.path = path
-        Path(path).mkdir(parents=True, exist_ok=True)
+        Path(os.path.normpath(path + '/images/')).mkdir(parents=True, exist_ok=True)
         
         # used for visualization
         self.num_examples_to_generate = 16
