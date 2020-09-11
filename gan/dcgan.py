@@ -3,7 +3,6 @@ from gan.gan import GAN
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 import tensorflow.keras.layers as layers
-import tensorflow.keras as keras
 import matplotlib.pyplot as plt
 
 class DCGAN(GAN):
@@ -15,6 +14,9 @@ class DCGAN(GAN):
     '''
 
     def __init__(self):
+        # TODO batch_size = 128
+        # TODO leaky relu = .2
+        # TODO no obvious dropout
         super().__init__(path='gan/models/dcgan/')
 
     def build_generator(self):

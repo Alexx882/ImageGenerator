@@ -5,20 +5,19 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 import tensorflow.keras.layers as layers
-import tensorflow.keras as keras
 import matplotlib.pyplot as plt
 
 class HR_DCGAN(GAN):
     '''
     This class represents the network architecture from the paper:
-
     High-Resolution Deep Convolutional Generative Adversarial Networks
-    <br />    
     J. D. Curtó, I. C. Zarza, Fernando de la Torre, Irwin King, Michael R. Lyu
+    https://arxiv.org/abs/1711.06491
     '''
 
-    def __init__(self, shape, batch_size=128, f_save=None):
-        super().__init__(shape, batch_size=128, f_save=f_save)
+    def __init__(self):
+        # TODO remove initial generator dense layer part (start with conv)
+        super().__init__(path='gan/models/hr_dcgan', batch_size=128)
 
     def build_generator(self):
         noise_shape = (100,)
@@ -27,7 +26,6 @@ class HR_DCGAN(GAN):
             layers.Dense(7*7*256, use_bias=False, input_shape=noise_shape),
             layers.BatchNormalization(),
             layers.ELU(),
-
             layers.Reshape((7,7,256)),
             # shape (7,7,256)
 
@@ -48,18 +46,7 @@ class HR_DCGAN(GAN):
 
         ])
 
-        noise = keras.Input(shape=noise_shape)
-        img = model(noise)
-
-        return keras.Model(noise, img)
-
-# gen = build_generator()
-# noise = tf.random.normal([1,100])
-# img = gen(noise, training=False)
-# print(img.shape)
-# plt.imshow(img[0, :,:,0], cmap='gray')
-# plt.show()
-
+        return model
 
     def build_discriminator(self):
         img_shape = (28, 28, 1)
@@ -78,13 +65,11 @@ class HR_DCGAN(GAN):
             layers.Flatten(),
             layers.Dense(1)
         ])
-        
-        img = keras.Input(shape=img_shape)
-        validity = model(img)
-        
-        return keras.Model(img, validity)
+                
+        return model
 
-# disc = build_discriminator()
-# res = disc.predict(img)
-# print(res)
+    def get_noise_dim(self):
+        return 100
 
+    def get_optimizers(self):
+        return (tf.keras.optimizers.Adam(.0002, .5), tf.keras.optimizers.Adam(.0002, .5))

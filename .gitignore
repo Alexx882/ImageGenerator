@@ -13,3 +13,8 @@
 !/gan/models/dcgan
 /gan/models/dcgan/*
 !/gan/models/dcgan/progress.gif
+
+# keep the HR-DCGAN progress gif
+!/gan/models/hr_dcgan
+/gan/models/hr_dcgan/*
+!/gan/models/hr_dcgan/progress.gif
