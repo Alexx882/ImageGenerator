@@ -11,6 +11,7 @@ from abc import ABC, abstractmethod
 import imageio
 import glob 
 import tensorflow_docs.vis.embed as embed # pip install git+https://github.com/tensorflow/docs
+from typing import Tuple
 
 DISC_FILENAME = '/discriminator.h5'
 GEN_FILENAME = '/generator.h5'
@@ -19,15 +20,13 @@ class GAN(ABC):
 
     bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
-    def __init__(self, shape, path, batch_size=256):
+    def __init__(self, path, batch_size=256):
         '''
         creates a GAN instance that can be trained to generate images in the specified size
         @params:
-            shape                    - Required  : shape of the input/output images in the format channels_last
             path                     - Required  : location on disc to store progress images and model on export 
             batch_size               - Optional  : number of times, a training run in an epoch is executed. total number of individual training rounds is epochs*iterations_X
         '''
-        self.shape = shape
         self.batch_size = batch_size
         self.path = path
         Path(path).mkdir(parents=True, exist_ok=True)
@@ -41,8 +40,9 @@ class GAN(ABC):
 
     def set_architecture(self):
         '''Applies the architecture from the implementing strategy.'''
-        self.d_optimizer = tf.keras.optimizers.Adam(1e-4) 
-        self.g_optimizer = tf.keras.optimizers.Adam(1e-4)
+        d_o, g_o = self.get_optimizers()
+        self.d_optimizer = d_o
+        self.g_optimizer = g_o
 
         self.discriminator = self.build_discriminator()
         self.generator = self.build_generator()
@@ -64,6 +64,11 @@ class GAN(ABC):
         '''This method must return the 1d size of the noise, eg. 100.'''
         pass
 
+    @abstractmethod
+    def get_optimizers(self) -> Tuple[tf.keras.optimizers.Optimizer, tf.keras.optimizers.Optimizer]:
+        '''This class must return two optimizers for Discriminator and Generator in this order.'''
+        pass
+    
 #endregion Neural Network Details
 
 #region Training

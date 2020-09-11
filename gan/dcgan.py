@@ -8,15 +8,14 @@ import matplotlib.pyplot as plt
 
 class DCGAN(GAN):
     '''
-    This class represents the network architecture from the paper:
-
-    High-Resolution Deep Convolutional Generative Adversarial Networks
-    <br />    
-    J. D. Curtó, I. C. Zarza, Fernando de la Torre, Irwin King, Michael R. Lyu
+    This class represents the network architecture from the paper: 
+    Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks
+    Alec Radford, Luke Metz, Soumith Chintala
+    https://arxiv.org/abs/1511.06434
     '''
 
-    def __init__(self, shape):
-        super().__init__(shape, path='gan/models/dcgan explicit/')
+    def __init__(self):
+        super().__init__(path='gan/models/dcgan/')
 
     def build_generator(self):
         noise_shape = (100,)
@@ -71,3 +70,8 @@ class DCGAN(GAN):
 
     def get_noise_dim(self):
         return 100
+
+    def get_optimizers(self):
+        d = tf.keras.optimizers.Adam(.0002, .5) 
+        g = tf.keras.optimizers.Adam(.0002, .5) 
+        return (d, g)
