@@ -5,6 +5,7 @@
 
 /images/*
 /images_original/*
+/training_images/*
 
 /gan/models*/*
 /gan/results*/*

@@ -33,11 +33,6 @@ def retrieve_images(max_amount: int = 1000000, offset: int = 0, print_status: bo
     :param max_amount:  maximal number of images to retrieve
     :param offset:      number of images to skip
     '''
-    if os.path.exists('images'):
-        shutil.rmtree('images')
-    if not os.path.exists('images'):
-        os.mkdir('images')
-
     with open('crawler/sources.txt', 'r') as file:
         sources = file.readlines()
 
@@ -54,6 +49,11 @@ def retrieve_images(max_amount: int = 1000000, offset: int = 0, print_status: bo
 
 
 def run():
+    if os.path.exists('images'):
+        shutil.rmtree('images')
+    if not os.path.exists('images'):
+        os.mkdir('images')
+
     cnt = 0
     for image in retrieve_images():
         with open(f'images/{cnt}.png', 'wb') as file:

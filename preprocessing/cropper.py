@@ -24,8 +24,9 @@ def scale_down(image: Image) -> Image:
     im = im.resize((int(width_new), int(height_new)), Image.ANTIALIAS)
     return im
 
-def detect_face(image: 'cv2.Mat') -> '(x,y,w,h)':
-    '''Detects the face bounding box for an image.'''
+def detect_face(image: Image) -> '(x,y,w,h)':
+    '''Detects the face in an image. Returns the bounding box or throws AssertionError if no distinct face was found'''
+    image = pil_to_opencv_image(image)
 
     # Create the haar cascade
     faceCascade = cv2.CascadeClassifier('preprocessing/haarcascade_frontalface_default.xml')
@@ -83,24 +84,21 @@ def squarify(image: Image, coi) -> Image:
     return im
 
 def pil_to_opencv_image(pil_image: Image) -> 'cv2.Mat':
+    '''Converts a PIL.Image to an OpenCV image.'''
     open_cv_image = np.array(pil_image) 
     # Convert RGB to BGR 
     open_cv_image = open_cv_image[:, :, ::-1].copy() 
     return open_cv_image
 
-def crop_image_to_face(filename):
+def crop_image_on_disk_to_face(filename):
     try:
         # print("preprocessing "+filename)
         im = Image.open('images/'+filename)
 
-        cv_im = pil_to_opencv_image(im)
-        c = detect_face(cv_im)
-
+        c = detect_face(im)
         im = squarify(im, c)
         im = scale_down(im)
-
-        cv_im = pil_to_opencv_image(im)
-        detect_face(cv_im)
+        detect_face(im)
 
         im.save('images/'+filename)
             
@@ -115,7 +113,7 @@ def crop_to_face():
         return
     
     for filename in os.listdir('images'):
-       crop_image_to_face(filename)
+       crop_image_on_disk_to_face(filename)
 
 
 if __name__ =="__main__":
