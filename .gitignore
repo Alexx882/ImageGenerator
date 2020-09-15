@@ -6,6 +6,8 @@
 /images/*
 /images_original/*
 /training_images/*
+!/training_images/readme.md
+!/training_images/training_data_provider.py
 
 /gan/models*/*
 /gan/results*/*

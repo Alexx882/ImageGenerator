@@ -14,10 +14,10 @@ from preprocessing import cropper
 class ImagePreparationPipeline:
 
     sources_location = 'crawler/sources.txt'
-    training_image_location = 'training_images/'
+    training_image_location = 'training_images/self/'
 
-    def __init__(self, batch_size=256):
-        self.batch_size = batch_size
+    def __init__(self):
+        pass
 
     def crawl_image_sources(self, force_update=False):
         '''
@@ -48,8 +48,8 @@ class ImagePreparationPipeline:
         
         return image
 
-    def store_all_processed_training_images(self):
-        '''Stores all training images at some internal location'''
+    def download_training_images(self):
+        '''Downloads, processes, and stores all training images at ImagePreparationPipeline.training_image_location'''
         if os.path.exists(self.training_image_location):
             shutil.rmtree(self.training_image_location)
         if not os.path.exists(self.training_image_location):
@@ -67,25 +67,8 @@ class ImagePreparationPipeline:
             image.save(os.path.normpath(ImagePreparationPipeline.training_image_location + f'/{cnt}.png'))
             cnt += 1
 
-    # TODO use from disk, as the download and cropping would happen in each epoch otherwise...
-    def get_all_training_images_in_batches(self) -> Iterable:
-        '''Returns all images in multiple batches, eg. N batches with Y images each.'''
-
-        current_batch = []
-        for image_data in downloader.retrieve_images(print_status=True):
-            image: Image = Image.open(io.BytesIO(image_data))
-            try:
-                image = self.crop_to_face(image)
-                current_batch.append(image)
-            except AssertionError:
-                pass
-            
-            if len(current_batch) == self.batch_size:
-                yield current_batch
-                current_batch = []
-
-
+   
 if __name__ == '__main__':
     p = ImagePreparationPipeline()
-    p.store_all_processed_training_images()
+    p.download_training_images()
     
