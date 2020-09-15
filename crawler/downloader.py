@@ -1,14 +1,10 @@
 import requests
 import os
 import shutil
+from typing import Iterable
 
-# number of images the downloader should download
-N_IMAGES = 999999999
 
-# number of images that should be skipped before counting
-OFFSET = 0
-
-def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+def printProgressBar(iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -29,6 +25,28 @@ def printProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, 
     if iteration == total: 
         print()
 
+# TODO refactor to improve performance if needed
+def retrieve_images(max_amount: int = 1000000, offset: int = 0, print_status: bool = False) -> Iterable:
+    '''
+    Retrieves images from the sources.txt
+    
+    :param max_amount:  maximal number of images to retrieve
+    :param offset:      number of images to skip
+    '''
+    with open('crawler/sources.txt', 'r') as file:
+        sources = file.readlines()
+
+    n_total = min(len(sources), max_amount+offset)
+    for i in range(n_total):
+        if i < offset:
+            continue
+
+        if print_status:
+            printProgressBar(iteration=i-offset, total=n_total-1, prefix="Downloading: ")
+        response = requests.get(sources[i])
+
+        yield response.content
+
 
 def run():
     if os.path.exists('images'):
@@ -36,20 +54,13 @@ def run():
     if not os.path.exists('images'):
         os.mkdir('images')
 
-    with open('crawler/sources.txt', 'r') as file:
-        sources = file.readlines()
-
-    n_total = min(len(sources), N_IMAGES+OFFSET)
-    for i in range(n_total):
-        if i < OFFSET:
-            continue
-
-        printProgressBar(iteration=i-OFFSET, total=n_total-1, prefix="Downloading: ")
-        response = requests.get(sources[i])
-
-        with open(f'images/{i}.png', 'wb') as file:
-            file.write(response.content)
+    cnt = 0
+    for image in retrieve_images():
+        with open(f'images/{cnt}.png', 'wb') as file:
+            file.write(image)
+        cnt += 1
 
 
 if __name__ == '__main__':
     run()
+    

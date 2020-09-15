@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 import imageio
 import glob 
 import tensorflow_docs.vis.embed as embed # pip install git+https://github.com/tensorflow/docs
-from typing import Tuple
+from typing import Tuple, Iterable
 
 DISC_FILENAME = '/discriminator.h5'
 GEN_FILENAME = '/generator.h5'
@@ -73,15 +73,17 @@ class GAN(ABC):
 
 #region Training
 
-    def set_training_data(self, data):
+    def set_training_data(self, data_generator: Iterable):
         '''
         sets the training data that should be used.
         @params:
-            data - Required : training data. the shape should have one dimension more (in the beginning) than the image shape 
-                              of the network. This dimension indicates the individual images. f.e. if images are 28x28 pixel 
-                              with only one channel, the shape of the training data should be (number_of_rows, 28, 28, 1)
+            data_generator. a generator which yields real training images in the desired batch size.
         '''
-        self.training_data_batches = tf.data.Dataset.from_tensor_slices(data).shuffle(data.shape[0]).batch(self.batch_size)
+        # training data. the shape should have one dimension more (in the beginning) than the image shape 
+        # of the network. This dimension indicates the individual images. f.e. if images are 28x28 pixel 
+        # with only one channel, the shape of the training data should be (number_of_rows, 28, 28, 1)
+
+        self.training_data_batches = data_generator
         self.has_training_data = True
 
     @staticmethod
@@ -156,17 +158,20 @@ class GAN(ABC):
         plt.savefig(os.path.normpath(self.path + '/images/image_at_epoch_{:04d}.png'.format(epoch)))
         plt.show()
 
-    def generate_gif(self):
+    def generate_gif(self, extend_last_frame=True):
         anim_file = os.path.normpath(self.path + '/progress.gif')
 
         with imageio.get_writer(anim_file, mode='I') as writer:
             filenames = glob.glob(os.path.normpath(self.path + '/images/image*.png'))
             filenames = sorted(filenames)
+
             for filename in filenames:
                 image = imageio.imread(filename)
                 writer.append_data(image)
-            image = imageio.imread(filename)
-            writer.append_data(image)
+                
+            for i in range(24 if extend_last_frame else 1):
+                image = imageio.imread(filename)
+                writer.append_data(image)
 
         embed.embed_file(anim_file)
 
