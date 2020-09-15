@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 import imageio
 import glob 
 import tensorflow_docs.vis.embed as embed # pip install git+https://github.com/tensorflow/docs
-from typing import Tuple, Iterable
+from typing import Tuple, Iterable, Callable
 
 DISC_FILENAME = '/discriminator.h5'
 GEN_FILENAME = '/generator.h5'
@@ -73,17 +73,20 @@ class GAN(ABC):
 
 #region Training
 
-    def set_training_data(self, data_generator: Iterable):
+    def set_training_data(self, data_generator_func: Callable[[], Iterable[np.ndarray]]):
         '''
         sets the training data that should be used.
         @params:
-            data_generator. a generator which yields real training images in the desired batch size.
+            data_generator_func. a generator function which yields real training images in the desired batch size on every call.
+                                 Here we use a generator function, as a normal generator would stop yielding results after loading all values once.
+                                 With the function we can execute the function everytime to get the same values again in the next epoch. 
+                                 Random order is preferred.
         '''
         # training data. the shape should have one dimension more (in the beginning) than the image shape 
         # of the network. This dimension indicates the individual images. f.e. if images are 28x28 pixel 
         # with only one channel, the shape of the training data should be (number_of_rows, 28, 28, 1)
 
-        self.training_data_batches = data_generator
+        self.training_data_generator_func = data_generator_func
         self.has_training_data = True
 
     @staticmethod
@@ -130,7 +133,7 @@ class GAN(ABC):
         for epoch in range(epochs):
             start = time.time()
 
-            for image_batch in self.training_data_batches:
+            for image_batch in self.training_data_generator_func():
                 self.train_step(image_batch)
 
             # Produce images for the GIF as we go
