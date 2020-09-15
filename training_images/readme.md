@@ -10,3 +10,5 @@ The faces are not aligned.
 ## ```lfw-deepfunneled/*/```
 Contains aligned images from [Labeled Faces in the Wild](http://vis-www.cs.umass.edu/lfw/index.html), namely the ones [aligned with deep funneling](http://vis-www.cs.umass.edu/lfw/lfw-deepfunneled.tgz).
 
+## ```img_align_celeba_png/```
+Contains aligned images from [CelebA](http://mmlab.ie.cuhk.edu.hk/projects/CelebA.html).
