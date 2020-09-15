@@ -3,12 +3,9 @@ import cv2
 from PIL import Image
 import numpy as np
 
-target_width = 32
-target_height = 32
-face_padding = 0.2
-first = True
 
-def scale_down(image: Image) -> Image:
+
+def scale_down(image: Image, target_width = 32, target_height = 32) -> Image:
     '''resizes the image to the global target_* values'''
     im = image
 
@@ -24,7 +21,7 @@ def scale_down(image: Image) -> Image:
     im = im.resize((int(width_new), int(height_new)), Image.ANTIALIAS)
     return im
 
-def detect_face(image: Image) -> '(x,y,w,h)':
+def detect_face(image: Image, face_padding = 0.2) -> '(x,y,w,h)':
     '''Detects the face in an image. Returns the bounding box or throws AssertionError if no distinct face was found'''
     image = pil_to_opencv_image(image)
 
@@ -106,7 +103,7 @@ def crop_image_on_disk_to_face(filename):
         os.remove('images/'+filename)
         # print("no distinct face found, deleting image")
 
-def crop_to_face():
+def crop_all_images_on_disk_to_face():
     '''Crops all images in folder ./images/ to their faces.'''
     if not os.path.exists('images'):
         print('Folder does not exist.')
@@ -117,4 +114,4 @@ def crop_to_face():
 
 
 if __name__ =="__main__":
-    crop_to_face()
+    crop_all_images_on_disk_to_face()

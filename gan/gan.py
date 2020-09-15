@@ -158,17 +158,20 @@ class GAN(ABC):
         plt.savefig(os.path.normpath(self.path + '/images/image_at_epoch_{:04d}.png'.format(epoch)))
         plt.show()
 
-    def generate_gif(self):
+    def generate_gif(self, extend_last_frame=True):
         anim_file = os.path.normpath(self.path + '/progress.gif')
 
         with imageio.get_writer(anim_file, mode='I') as writer:
             filenames = glob.glob(os.path.normpath(self.path + '/images/image*.png'))
             filenames = sorted(filenames)
+
             for filename in filenames:
                 image = imageio.imread(filename)
                 writer.append_data(image)
-            image = imageio.imread(filename)
-            writer.append_data(image)
+                
+            for i in range(24 if extend_last_frame else 1):
+                image = imageio.imread(filename)
+                writer.append_data(image)
 
         embed.embed_file(anim_file)
 
