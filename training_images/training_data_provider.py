@@ -22,6 +22,8 @@ class TrainingDataProvider:
         self.image_width = image_width
         self.image_height = image_height
 
+        self.npy_data_path = 'training_images/npdata.npy'
+
     def _load_from_disk_in_batches(self) -> Iterable[List[str]]:
         '''
         Returns all images in self.training_data_locations in batches of self.batch_size. The order is shuffled every time.
@@ -84,7 +86,14 @@ class TrainingDataProvider:
         for arr in self.get_all_training_images_in_batches():
             arrs.append(arr)
 
-        np.save('training_images/npdata', np.asarray(arrs))
+        if os.path.exists(self.npy_data_path):
+            os.remove(self.npy_data_path)
+        np.save(self.npy_data_path, np.asarray(arrs))
+
+    def prepare_image_arrays_from_disk(self):
+        '''Loads the image array from disk into memory.'''
+        # TODO make singleton for caching
+        self.arrs = np.load(self.npy_data_path, allow_pickle=True)
 
     def get_all_training_images_in_batches_from_array_on_disk(self) -> Iterable[np.ndarray]:
         '''
@@ -94,9 +103,8 @@ class TrainingDataProvider:
         
         :returns: same as self.get_all_training_images_in_batches() but faster.
         '''
-        arrs = np.load('training_images/npdata.npy', allow_pickle=True)
-        random.shuffle(arrs)
-        for arr in arrs:
+        random.shuffle(self.arrs)
+        for arr in self.arrs:
             yield arr
 
 
