@@ -37,22 +37,22 @@ class HR_DCGAN_Faces(HR_DCGAN_MNIST):
 
             # stride 2 -> larger image
             # thiccness 64 -> channels
-            layers.Conv2DTranspose(64, (4,4), strides=(2,2), padding='same', use_bias=False),
-            layers.BatchNormalization(),
-            layers.ELU(),
+            # layers.Conv2DTranspose(64, (4,4), strides=(2,2), padding='same', use_bias=False),
+            # layers.BatchNormalization(),
+            # layers.ELU(),
             # shape (16, 16, 64)
 
-            layers.Conv2DTranspose(32, (4,4), strides=(2,2), padding='same', use_bias=False),
+            layers.Conv2DTranspose(32, (4,4), strides=(4,4), padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.ELU(),
             # shape (32, 32, 32)
 
-            layers.Conv2DTranspose(16, (4,4), strides=(2,2), padding='same', use_bias=False),
-            layers.BatchNormalization(),
-            layers.ELU(),
+            # layers.Conv2DTranspose(16, (4,4), strides=(2,2), padding='same', use_bias=False),
+            # layers.BatchNormalization(),
+            # layers.ELU(),
             # shape (64, 64, 16)
 
-            layers.Conv2DTranspose(8, (4,4), strides=(2,2), padding='same', use_bias=False),
+            layers.Conv2DTranspose(8, (4,4), strides=(4,4), padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.ELU(),
             # shape (128, 128, 8)
@@ -73,22 +73,22 @@ class HR_DCGAN_Faces(HR_DCGAN_MNIST):
             layers.ELU(),
             # shape (128, 128, 8)
 
-            layers.Conv2D(16, (4,4), strides=(2,2), padding='same'),
-            layers.BatchNormalization(),
-            layers.ELU(),
+            # layers.Conv2D(16, (4,4), strides=(2,2), padding='same'),
+            # layers.BatchNormalization(),
+            # layers.ELU(),
             # shape (64, 64, 16)
 
-            layers.Conv2D(32, (4,4), strides=(2,2), padding='same'),
+            layers.Conv2D(32, (4,4), strides=(4,4), padding='same'),
             layers.BatchNormalization(),
             layers.ELU(),
             # shape (32, 32, 32)
 
-            layers.Conv2D(64, (4,4), strides=(2,2), padding='same'),
-            layers.BatchNormalization(),
-            layers.ELU(),
+            # layers.Conv2D(64, (4,4), strides=(2,2), padding='same'),
+            # layers.BatchNormalization(),
+            # layers.ELU(),
             # shape (16, 16, 64)
             
-            layers.Conv2D(128, (4,4), strides=(2,2), padding='same'),
+            layers.Conv2D(128, (4,4), strides=(4,4), padding='same'),
             layers.BatchNormalization(),
             layers.ELU(),
             # shape (8, 8, 128)

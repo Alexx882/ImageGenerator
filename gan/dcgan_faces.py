@@ -33,22 +33,22 @@ class DCGAN_Faces(DCGAN_MNIST):
 
             # stride 2 -> larger image
             # thiccness 128 -> channels
-            layers.Conv2DTranspose(128, (5,5), strides=(2,2), padding='same', use_bias=False),
-            layers.BatchNormalization(),
-            layers.ReLU(),
+            # layers.Conv2DTranspose(128, (5,5), strides=(2,2), padding='same', use_bias=False),
+            # layers.BatchNormalization(),
+            # layers.ReLU(),
             # shape (16, 16, 128)
             
-            layers.Conv2DTranspose(64, (5,5), strides=(2,2), padding='same', use_bias=False),
+            layers.Conv2DTranspose(64, (5,5), strides=(4,4), padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.ReLU(),
             # shape (32, 32, 64)
             
-            layers.Conv2DTranspose(32, (5,5), strides=(2,2), padding='same', use_bias=False),
-            layers.BatchNormalization(),
-            layers.ReLU(),
+            # layers.Conv2DTranspose(32, (5,5), strides=(2,2), padding='same', use_bias=False),
+            # layers.BatchNormalization(),
+            # layers.ReLU(),
             # shape (64, 64, 32)
 
-            layers.Conv2DTranspose(16, (5,5), strides=(2,2), padding='same', use_bias=False),
+            layers.Conv2DTranspose(16, (5,5), strides=(4,4), padding='same', use_bias=False),
             layers.BatchNormalization(),
             layers.ReLU(),
             # shape (128, 128, 16)
@@ -69,22 +69,22 @@ class DCGAN_Faces(DCGAN_MNIST):
             layers.LeakyReLU(alpha=.2),
             # shape (128, 128, 16)
 
-            layers.Conv2D(32, (5,5), strides=(2,2), padding='same'),
-            layers.BatchNormalization(),
-            layers.LeakyReLU(alpha=.2),
+            # layers.Conv2D(32, (5,5), strides=(2,2), padding='same'),
+            # layers.BatchNormalization(),
+            # layers.LeakyReLU(alpha=.2),
             # shape (64, 64, 32)
 
-            layers.Conv2D(64, (5,5), strides=(2,2), padding='same'),
+            layers.Conv2D(64, (5,5), strides=(4,4), padding='same'),
             layers.BatchNormalization(),
             layers.LeakyReLU(alpha=.2),
             # shape (32, 32, 64)
 
-            layers.Conv2D(128, (5,5), strides=(2,2), padding='same'),
-            layers.BatchNormalization(),
-            layers.LeakyReLU(alpha=.2),
+            # layers.Conv2D(128, (5,5), strides=(2,2), padding='same'),
+            # layers.BatchNormalization(),
+            # layers.LeakyReLU(alpha=.2),
             # shape (16, 16, 128)
 
-            layers.Conv2D(256, (5,5), strides=(2,2), padding='same'),
+            layers.Conv2D(256, (5,5), strides=(4,4), padding='same'),
             layers.BatchNormalization(),
             layers.LeakyReLU(alpha=.2),
             # shape (8, 8, 256)
