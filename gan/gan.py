@@ -20,14 +20,12 @@ class GAN(ABC):
 
     bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
-    def __init__(self, path, batch_size=256):
+    def __init__(self, path):
         '''
         creates a GAN instance that can be trained to generate images in the specified size
         @params:
             path                     - Required  : location on disc to store progress images and model on export 
-            batch_size               - Optional  : number of times, a training run in an epoch is executed. total number of individual training rounds is epochs*iterations_X
         '''
-        self.batch_size = batch_size
         self.path = path
         Path(os.path.normpath(path + '/images/')).mkdir(parents=True, exist_ok=True)
         
@@ -100,9 +98,10 @@ class GAN(ABC):
         return GAN.bce(tf.ones_like(generated_output), generated_output)
 
     @tf.function
-    def train_step(self, real_data_batch) -> '(disc_loss, gen_loss)':
+    def train_step(self, real_data_batch: np.ndarray) -> '(disc_loss, gen_loss)':
         # prepare real data and noise input
-        noise = tf.random.normal([self.batch_size, self.get_noise_dim()])
+        batch_size = real_data_batch.shape[0]
+        noise = tf.random.normal([batch_size, self.get_noise_dim()])
 
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             # Predict images with G
