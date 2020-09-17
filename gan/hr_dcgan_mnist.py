@@ -16,8 +16,8 @@ class HR_DCGAN_MNIST(GAN):
     https://arxiv.org/abs/1711.06491
     '''
 
-    def __init__(self, path='gan/models/mnist/hr_dcgan/'):
-        super().__init__(path=path)
+    def __init__(self, path='gan/models/mnist/hr_dcgan/', show_training_results=True):
+        super().__init__(path=path, show_training_results=show_training_results)
 
     def build_generator(self):
         noise_shape = (self.get_noise_dim(),)

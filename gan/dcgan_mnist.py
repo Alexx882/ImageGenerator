@@ -1,5 +1,7 @@
 from gan.gan import GAN
 
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 import tensorflow.keras.layers as layers
@@ -14,8 +16,8 @@ class DCGAN_MNIST(GAN):
     https://arxiv.org/abs/1511.06434
     '''
 
-    def __init__(self):
-        super().__init__(path='gan/models/mnist/dcgan/')
+    def __init__(self, path='gan/models/mnist/dcgan/', show_training_results=True):
+        super().__init__(path=path, show_training_results=show_training_results)
 
     def build_generator(self):
         noise_shape = (self.get_noise_dim(),)
