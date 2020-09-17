@@ -5,9 +5,9 @@ from tensorflow.keras.models import Sequential
 import tensorflow.keras.layers as layers
 import matplotlib.pyplot as plt
 
-class DCGAN(GAN):
+class DCGAN_MNIST(GAN):
     '''
-    This class represents the network architecture from the paper: 
+    This class represents the network architecture for MNIST dataset from the paper: 
     Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks
     Alec Radford, Luke Metz, Soumith Chintala
     2016
@@ -15,7 +15,7 @@ class DCGAN(GAN):
     '''
 
     def __init__(self):
-        super().__init__(path='gan/models/mnist/dcgan/', batch_size=128)
+        super().__init__(path='gan/models/mnist/dcgan/')
 
     def build_generator(self):
         noise_shape = (self.get_noise_dim(),)
