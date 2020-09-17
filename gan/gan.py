@@ -20,16 +20,18 @@ class GAN(ABC):
 
     bce = tf.keras.losses.BinaryCrossentropy(from_logits=True)
 
-    def __init__(self, path):
+    def __init__(self, path, show_training_results=True):
         '''
         creates a GAN instance that can be trained to generate images in the specified size
         @params:
             path                     - Required  : location on disc to store progress images and model on export 
+            show_training_results    - Optional  : shows intermediate results with plt.show() if true
         '''
         self.path = path
         Path(os.path.normpath(path + '/images/')).mkdir(parents=True, exist_ok=True)
         
         # used for visualization
+        self.show_training_results = show_training_results
         self.num_examples_to_generate = 16
         self.seed = tf.random.normal([self.num_examples_to_generate, self.get_noise_dim()])
         
@@ -158,7 +160,8 @@ class GAN(ABC):
             plt.axis('off')
 
         plt.savefig(os.path.normpath(self.path + '/images/image_at_epoch_{:04d}.png'.format(epoch)))
-        plt.show()
+        if self.show_training_results:
+            plt.show()
 
     def generate_gif(self, extend_last_frame=True):
         anim_file = os.path.normpath(self.path + '/progress.gif')
