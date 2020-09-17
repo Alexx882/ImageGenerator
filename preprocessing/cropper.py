@@ -22,7 +22,7 @@ def scale_down(image: Image, target_width = 32, target_height = 32) -> Image:
     return im
 
 def detect_face(image: Image, face_padding = 0.2) -> '(x,y,w,h)':
-    '''Detects the face in an image. Returns the bounding box or throws AssertionError if no distinct face was found'''
+    '''Detects the face in an image. Returns the bounding box or throws LookupError if no distinct face was found'''
     image = pil_to_opencv_image(image)
 
     # Create the haar cascade
@@ -35,7 +35,8 @@ def detect_face(image: Image, face_padding = 0.2) -> '(x,y,w,h)':
 
     # print("Found {0} faces!".format(len(faces)))
 
-    assert len(faces) == 1, "Image does not contain one distinct face!"
+    if len(faces) != 1:
+        raise LookupError("Image does not contain one distinct face!")
 
     # TODO remove loop (kept to reduce git changes)
     for (x, y, w, h) in faces:
@@ -56,7 +57,7 @@ def detect_face(image: Image, face_padding = 0.2) -> '(x,y,w,h)':
             y -= int((w-h)/2)
             h = w
 
-        cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
+        # cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
         # center point of the face-rectangle
         c = (x,y,w,h)
@@ -99,7 +100,7 @@ def crop_image_on_disk_to_face(filename):
 
         im.save('images/'+filename)
             
-    except AssertionError:
+    except LookupError:
         os.remove('images/'+filename)
         # print("no distinct face found, deleting image")
 

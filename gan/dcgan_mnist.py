@@ -1,49 +1,45 @@
 from gan.gan import GAN
 
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 import tensorflow as tf
 from tensorflow.keras.models import Sequential
 import tensorflow.keras.layers as layers
 import matplotlib.pyplot as plt
 
-class DCGAN(GAN):
+class DCGAN_MNIST(GAN):
     '''
-    This class represents the network architecture from the paper: 
+    This class represents the network architecture for MNIST dataset from the paper: 
     Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks
     Alec Radford, Luke Metz, Soumith Chintala
+    2016
     https://arxiv.org/abs/1511.06434
     '''
 
-    def __init__(self):
-        # TODO batch_size = 128
-        # TODO leaky relu = .2
-        # TODO no obvious dropout
-        super().__init__(path='gan/models/dcgan/')
+    def __init__(self, path='gan/models/mnist/dcgan/', show_training_results=True):
+        super().__init__(path=path, show_training_results=show_training_results)
 
     def build_generator(self):
-        noise_shape = (100,)
+        noise_shape = (self.get_noise_dim(),)
 
         model = Sequential([
-            layers.Dense(7*7*256, use_bias=False, input_shape=noise_shape),
-            layers.BatchNormalization(),
-            layers.LeakyReLU(),
 
-            layers.Reshape((7,7,256)),
-            # shape (7,7,256)
-
-            layers.Conv2DTranspose(128, (5,5), strides=(1,1), padding='same', use_bias=False),
+            # project and reshape
+            layers.Dense(7*7*128, use_bias=False, input_shape=noise_shape),
             layers.BatchNormalization(),
-            layers.LeakyReLU(),
-            # shape (7,7,128)
+            layers.ReLU(),
+            layers.Reshape((7, 7, 128)),
+            # shape (7, 7, 128)
 
             # stride 2 -> larger image
-            # thiccness 128 -> channels
+            # thiccness 64 -> channels
             layers.Conv2DTranspose(64, (5,5), strides=(2,2), padding='same', use_bias=False),
             layers.BatchNormalization(),
-            layers.LeakyReLU(),
-            # shape (14,14,64)
+            layers.ReLU(),
+            # shape (14, 14, 64)
 
             layers.Conv2DTranspose(1, (5,5), strides=(2,2), padding='same', use_bias=False, activation='tanh')
-            # shape (28,28,1)
+            # shape (28, 28, 1)
 
         ])
 
@@ -55,17 +51,20 @@ class DCGAN(GAN):
         model = Sequential([
 
             layers.Conv2D(64, (5,5), strides=(2,2), padding='same', input_shape=img_shape),
-            layers.LeakyReLU(),
-            layers.Dropout(0.3),
+            layers.LeakyReLU(alpha=.2),
+            # shape (14, 14, 64)
 
             layers.Conv2D(128, (5,5), strides=(2,2), padding='same'),
-            layers.LeakyReLU(),
-            layers.Dropout(0.3),
-
-            # layers.Conv2D(256, 4, strides=(1,1), padding='same', activation='sigmoid'),
+            layers.BatchNormalization(),
+            layers.LeakyReLU(alpha=.2),
+            # shape (7, 7, 128)
 
             layers.Flatten(),
-            layers.Dense(1) #, activation=tf.nn.sigmoid)
+            layers.Dense(1) #, activation='sigmoid')
+            # FIXME when using sigmoid as proposed by the paper the classification does not work.
+            # somehow the  two classes (real/fake) cannot be differentiated
+            # I assume this has to do with sigmoid being independent between classes (and real/fake being not)
+            # https://gombru.github.io/2018/05/23/cross_entropy_loss/
         ])
         
         return model

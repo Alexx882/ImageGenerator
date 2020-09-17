@@ -1,12 +1,15 @@
 import sys
 import os
-from typing import Iterable, List
+from typing import Iterable, List, Any
 from PIL import Image
 import numpy as np
 import random
+import shutil
+from deprecated import deprecated
 
 sys.path.insert(1, '.')
 from preprocessing import cropper
+
 
 class TrainingDataProvider:
     '''This class provides easy and abstracted access to facial image training data.'''
@@ -22,79 +25,134 @@ class TrainingDataProvider:
         self.image_width = image_width
         self.image_height = image_height
 
-        self.npy_data_path = 'training_images/npdata.npy'
+        self.npy_data_path = 'training_images/npy/'
 
-    def _load_from_disk_in_batches(self) -> Iterable[List[str]]:
-        '''
-        Returns all images in self.training_data_locations in batches of self.batch_size. The order is shuffled every time.
-        
-        :returns: a generator of lists of paths of images
-        '''
+    def _get_item_batches(self, items: Iterable[Any], batch_size: int) -> Iterable[Any]:
         current_batch = [] # the current batch to fill
+
+        # add only number of files to current batch so it reaches batch size
+        while len(items) > 0:
+            nr_files_to_add = batch_size - len(current_batch)
+            current_batch.extend(items[:nr_files_to_add])
+            items = items[nr_files_to_add:]
+
+            if len(current_batch) == batch_size:
+                yield current_batch
+                current_batch = []
+
+        # also return last few images as they are different everytime anyway
+        if len(current_batch) > 0:
+            yield current_batch
+
+    def _load_all_images_from_disk(self) -> List[str]:
+        '''
+        Returns all images in self.training_data_locations. The order is shuffled every time.
+        
+        :returns: a list of paths of images
+        '''
         current_files = [] # the files to process
 
         for location in self.training_data_locations:
             for cur_path, _, files in os.walk(location):
                 current_files.extend([
-                    os.path.normpath(cur_path + '/' + f) 
+                    os.path.normpath(f'{cur_path}/{f}')
                     for f in files 
                     if f.endswith(TrainingDataProvider.IMAGE_FILE_ENDINGS)
                 ])
         
         random.shuffle(current_files)
 
-        # add only number of files to current batch so it reaches batch size
-        while len(current_files) > 0:
-            nr_files_to_add = min(len(current_files), self.batch_size - len(current_batch))
-            current_batch.extend(current_files[:nr_files_to_add])
-            current_files = current_files[nr_files_to_add:]
+        return current_files
+ 
+    def _preprocess_image(self, image: Image) -> Image:
+        '''Preprocesses one image by squarifying it around the face. Throws LookupError if no face was found.'''
+        # change to desired size
+        image = cropper.scale_down(image, self.image_width, self.image_height)
 
-            if len(current_batch) == self.batch_size:
-                yield current_batch
-                current_batch = []
+        # crop around head while keeping desired size
+        c = cropper.detect_face(image)
+        smaller = min(c[0], c[1])
+        c = (c[0]-smaller, c[1]-smaller, self.image_width, self.image_height)
+        image = cropper.squarify(image, c)
 
-        # TODO think about threshold min_size for last batch
-        if True: #len(current_batch) > self.batch_size / 4:
-            yield current_batch                 
+        # FIXME greyscale for now
+        image = image.convert('L')
+
+        return image
+            
+    def _convert_image_batch_to_training_array(self, images: List[np.ndarray]) -> np.ndarray:
+        '''Converts a list of individual image arrays to a single array preprocessed for training.'''
+        array = np.asarray(images)
+        array = array.reshape(array.shape[0], self.image_width, self.image_height, 1).astype('float32')
+        array = (array - 127.5) / (127.5) 
+        return array
 
     def get_all_training_images_in_batches(self) -> Iterable[np.ndarray]:
         '''
-        Returns all training images in multiple batches, eg. N batches with Y images each. Y is self.batch_size.
+        Preprocesses all training images and returns them in multiple batches, where one batch is one numpy array.
 
-        :returns: array with shape (self.batch_size, self.image_width, self.image_height, 1)
+        :returns: arrays with shape (self.batch_size, self.image_width, self.image_height, 1)
         '''
+        current_batch = [] # the current batch to fill
 
-        for image_batch in self._load_from_disk_in_batches():
-            current_batch = []
-            
-            for image_path in image_batch:
-                image: Image = Image.open(image_path)
-                image = cropper.scale_down(image, self.image_width, self.image_height)
-                image = image.convert('L') # FIXME greyscale for now
-                
-                current_batch.append(np.array(image))
+        for image_path in self._load_all_images_from_disk():
+            image: Image = Image.open(image_path)
+            try:
+                image = self._preprocess_image(image)
+            except LookupError:
+                continue # no face was found in image
 
-            array = np.asarray(current_batch)
-            array = array.reshape(array.shape[0], self.image_width, self.image_height, 1).astype('float32')
-            array = (array - 255/2.) / (255/2.) 
-                
-            yield array
+            current_batch.append(np.array(image))
 
-    def store_image_arrays_to_disk(self):
-        '''Converts all images as in self.get_all_training_images_in_batches() and stores them in a np file.'''
-        arrs = []
-        for arr in self.get_all_training_images_in_batches():
-            arrs.append(arr)
+            if len(current_batch) == self.batch_size:
+                yield self._convert_image_batch_to_training_array(current_batch)
+                current_batch = []
+        
+        if len(current_batch) > 0:
+            yield self._convert_image_batch_to_training_array(current_batch)
 
+    def store_image_arrays_on_disk(self, force=False):
+        '''Stores the batches from self.get_all_training_images_in_batches() on the disk as individual array files.'''
         if os.path.exists(self.npy_data_path):
-            os.remove(self.npy_data_path)
-        np.save(self.npy_data_path, np.asarray(arrs))
+            if force:
+                shutil.rmtree(self.npy_data_path)
+            else:
+                print("Image arrays already exist, aborting.")
+                return
+            
+        if not os.path.exists(self.npy_data_path):
+            os.mkdir(self.npy_data_path)
 
+        idx = 0
+        for batch in self.get_all_training_images_in_batches():
+            np.save(
+                os.path.normpath(f'{self.npy_data_path}/{idx}.npy'), 
+                batch
+            )
+            idx += 1
+
+    def get_all_training_images_in_batches_from_disk(self) -> Iterable[np.ndarray]:
+        '''
+        Loads preprocessed image arrays from files. Memory load is not that high, as only individual batches are read in.
+        The batch size is fixed to 64.
+
+        :returns: same as self.get_all_training_images_in_batches() but slightly faster.
+        '''
+        if not os.path.exists(self.npy_data_path):
+            raise IOError(f"The training arrays folder {self.npy_data_path} does not exist.")
+
+        for _, _, files in os.walk(self.npy_data_path):
+            random.shuffle(files)
+            for file_ in files:
+                yield np.load(os.path.join(self.npy_data_path, file_), allow_pickle=True)
+
+    @deprecated(reason="Whole training array should not be loaded into memory")
     def prepare_image_arrays_from_disk(self):
         '''Loads the image array from disk into memory.'''
         # TODO make singleton for caching
         self.arrs = np.load(self.npy_data_path, allow_pickle=True)
 
+    @deprecated(reason="Whole training array should not be loaded into memory")
     def get_all_training_images_in_batches_from_array_on_disk(self) -> Iterable[np.ndarray]:
         '''
         Loads preprocessed image arrays from file.
@@ -109,9 +167,16 @@ class TrainingDataProvider:
 
 
 if __name__ == '__main__':
-    p = TrainingDataProvider()
-    sum = 0
-    for batch in p._load_from_disk_in_batches():
-        print(len(batch))
-        sum += len(batch)
-    print(sum)
+    pass
+    # store all preprocessed image arrays on disk
+
+    # p = TrainingDataProvider([r'E:\Projects\ImageGenerator\training_images\img_align_celeba_png'], 256, 256, 64)
+
+    # p.store_image_arrays_on_disk()
+
+    # for batch in p.get_all_training_images_in_batches_from_disk():
+    #     print(batch.shape)
+    #     import matplotlib.pyplot as plt
+    #     plt.imshow((batch[0, :,:,0] ), cmap='gray')
+    #     plt.show()
+    #     break
