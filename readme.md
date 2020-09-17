@@ -6,10 +6,12 @@ Various [sources](training_images/readme.md) were used as real input for the Dis
 
 ## Results
 ### DCGAN
-![DCGAN](gan/models/dcgan/progress.gif)
+![DCGAN MNIST](gan/models/mnist/dcgan/progress.gif)
+<!-- ![DCGAN Faces](gan/models/faces/dcgan/progress.gif) -->
 
 ### HR-DCGAN
-![HR-DCGAN](gan/models/hr_dcgan/progress.gif)
+![HR-DCGAN MNIST](gan/models/mnist/hr_dcgan/progress.gif)
+![HR-DCGAN Faces](gan/models/faces/hr_dcgan/progress.gif)
 
 ## Additional Sources for Report
 

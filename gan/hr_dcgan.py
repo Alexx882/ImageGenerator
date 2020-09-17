@@ -17,7 +17,7 @@ class HR_DCGAN(GAN):
 
     def __init__(self):
         # TODO remove initial generator dense layer part (start with conv)
-        super().__init__(path='gan/models/hr_dcgan', batch_size=128)
+        super().__init__(path='gan/models/faces/hr_dcgan', batch_size=128)
 
     def build_generator(self):
         noise_shape = (100,)
