@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 from abc import ABC, abstractmethod
 import imageio
 import glob 
-import tensorflow_docs.vis.embed as embed # pip install git+https://github.com/tensorflow/docs
 from typing import Tuple, Iterable, Callable
 
 DISC_FILENAME = '/discriminator.h5'
@@ -164,6 +163,8 @@ class GAN(ABC):
             plt.show()
 
     def generate_gif(self, extend_last_frame=True):
+        import tensorflow_docs.vis.embed as embed # pip install git+https://github.com/tensorflow/docs
+
         anim_file = os.path.normpath(self.path + '/progress.gif')
 
         with imageio.get_writer(anim_file, mode='I') as writer:
