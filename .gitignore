@@ -10,19 +10,9 @@
 !/training_images/readme.md
 !/training_images/training_data_provider.py
 
+# keep model weights and progress.gif but ignore all images for gif creation
 /gan/models/*
+/gan/models/**/images/
 
 !/gan/models/mnist/
-/gan/models/mnist/*
 !/gan/models/faces/
-/gan/models/faces/*
-
-# keep the DCGAN progress gifs
-!/gan/models/**/dcgan
-/gan/models/**/dcgan/*
-!/gan/models/**/dcgan/progress.gif
-
-# keep the HR-DCGAN progress gifs
-!/gan/models/**/hr_dcgan
-/gan/models/**/hr_dcgan/*
-!/gan/models/**/hr_dcgan/progress.gif
