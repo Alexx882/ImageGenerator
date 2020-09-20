@@ -26,18 +26,23 @@ class GAN(ABC):
             path                     - Required  : location on disc to store progress images and model on export 
             show_training_results    - Optional  : shows intermediate results with plt.show() if true
         '''
+        self._set_path(path)
+        
+        self._init_training_visualization(show_training_results)
+        
+        self.has_training_data = False
+        self._set_architecture()
+
+    def _set_path(self, path):
         self.path = path
         Path(os.path.normpath(path + '/images/')).mkdir(parents=True, exist_ok=True)
-        
-        # used for visualization
+
+    def _init_training_visualization(self, show_training_results):
         self.show_training_results = show_training_results
         self.num_examples_to_generate = 16
         self.seed = tf.random.normal([self.num_examples_to_generate, self.get_noise_dim()])
-        
-        self.has_training_data = False
-        self.set_architecture()
 
-    def set_architecture(self):
+    def _set_architecture(self):
         '''Applies the architecture from the implementing strategy.'''
         d_o, g_o = self.get_optimizers()
         self.d_optimizer = d_o
@@ -267,4 +272,48 @@ class GAN(ABC):
         self.discriminator = (tf.keras.models.load_model(disc_path))
         self.generator = (tf.keras.models.load_model(gen_path))
 
+    @staticmethod
+    def import_gan(path, silent=False):
+        gan = _GAN()
+        gan.import_(path, silent)
+        return gan
+
 #endregion Import / Export
+
+
+class _GAN(GAN):
+    '''
+    This class is used to import unknown trained models from file.
+    It must only be used for GAN.import_gan(path, silent) and provides almost no functionality.
+    '''
+
+    def __init__(self):
+        super().__init__(path='', show_training_results=False)
+        self.error = NotImplementedError("This class is only used for generic imported models")
+
+    def _set_path(self, path):
+        pass
+
+    def _init_training_visualization(self, show_training_results):
+        pass
+
+    def _set_architecture(self):
+        pass
+
+    def train(self, epochs):
+        raise self.error
+
+    def build_generator(self):
+        raise self.error
+
+    def build_discriminator(self):
+        raise self.error
+
+    def get_noise_dim(self):
+        print(self.generator.input_shape)
+        return self.generator.input_shape
+
+    def get_optimizers(self):
+        raise self.error
+
+        
