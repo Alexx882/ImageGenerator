@@ -5,7 +5,6 @@ from PIL import Image
 import numpy as np
 import random
 import shutil
-from deprecated import deprecated
 
 sys.path.insert(1, '.')
 from preprocessing import cropper
@@ -25,7 +24,8 @@ class TrainingDataProvider:
         self.image_width = image_width
         self.image_height = image_height
 
-        self.npy_data_path = 'training_images/npy/'
+        # get absolute path on disc
+        self.npy_data_path = os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + '/npy/')
 
     def _get_item_batches(self, items: Iterable[Any], batch_size: int) -> Iterable[Any]:
         current_batch = [] # the current batch to fill
@@ -133,10 +133,11 @@ class TrainingDataProvider:
 
     def get_all_training_images_in_batches_from_disk(self) -> Iterable[np.ndarray]:
         '''
-        Loads preprocessed image arrays from files. Memory load is not that high, as only individual batches are read in.
+        Loads preprocessed image arrays from files. 
+        Memory load is not that high, as only individual batches are read in.
         The batch size is fixed to 64.
 
-        :returns: same as self.get_all_training_images_in_batches() but slightly faster.
+        :returns: same as self.get_all_training_images_in_batches() but faster.
         '''
         if not os.path.exists(self.npy_data_path):
             raise IOError(f"The training arrays folder {self.npy_data_path} does not exist.")
@@ -145,25 +146,6 @@ class TrainingDataProvider:
             random.shuffle(files)
             for file_ in files:
                 yield np.load(os.path.join(self.npy_data_path, file_), allow_pickle=True)
-
-    @deprecated(reason="Whole training array should not be loaded into memory")
-    def prepare_image_arrays_from_disk(self):
-        '''Loads the image array from disk into memory.'''
-        # TODO make singleton for caching
-        self.arrs = np.load(self.npy_data_path, allow_pickle=True)
-
-    @deprecated(reason="Whole training array should not be loaded into memory")
-    def get_all_training_images_in_batches_from_array_on_disk(self) -> Iterable[np.ndarray]:
-        '''
-        Loads preprocessed image arrays from file.
-        This is faster than recalculating the array from the raw image but uses a lot more memory.
-        The file is saved with self.store_image_arrays_to_disk().
-        
-        :returns: same as self.get_all_training_images_in_batches() but faster.
-        '''
-        random.shuffle(self.arrs)
-        for arr in self.arrs:
-            yield arr
 
 
 if __name__ == '__main__':

@@ -12,3 +12,6 @@ Various [sources](training_images/readme.md) were used as real input for the Dis
 ### HR-DCGAN
 ![HR-DCGAN MNIST](gan/models/mnist/hr_dcgan/progress.gif)
 ![HR-DCGAN Faces](gan/models/faces/hr_dcgan/progress.gif)
+
+## Reports
+[Alexander Lercher's report](reports/lercher/report_lercher.ipynb) is a Jupyter Notebook about GAN theory and the DCGAN and HR-DCGAN implementation.
