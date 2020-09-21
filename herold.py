@@ -17,13 +17,26 @@ def test_provider():
         i += 1
 
 def mnist_training():
-    provider = MNIST_provider(1000)
+    epochs = 50
+    provider = MNIST_provider(128)
     gan = DEGAN_MNIST()
 
     gan.set_training_data(provider.get_numbers)
-    gan.train(epochs=1)
-    gan.generate_gif()
+    
+    for _ in range(epochs):
+        i = 0
+
+        # start training
+        for image_batch in provider.get_numbers():
+            print(f"batch {i}")
+            gan.train_step(image_batch)
+            i += 1
+        gan._generate_and_save_images(gan.generator, 1, gan.seed)
+        # end training
+
     gan.export()
+    # gan.generate_gif()
+    
 
 if __name__ == "__main__":
     mnist_training()
