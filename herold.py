@@ -31,6 +31,8 @@ def mnist_training():
             print(f"batch {i}")
             gan.train_step(image_batch)
             i += 1
+            break
+
         gan._generate_and_save_images(gan.generator, epoch, gan.seed)
         # end training
 

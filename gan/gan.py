@@ -103,13 +103,15 @@ class GAN(ABC):
         '''The generator loss function, where generated output should be classified as 0.'''
         return GAN.bce(tf.ones_like(generated_output), generated_output)
 
+    def sample_noise(self, batch_size, noise_shape):
+        noise = tf.random.normal([batch_size, self.get_noise_dim()])
+        return noise
+
     @tf.function
     def train_step(self, real_data_batch: np.ndarray) -> '(disc_loss, gen_loss)':
         # prepare real data and noise input
         batch_size = real_data_batch.shape[0]
-        noise = tf.random.normal([batch_size, self.get_noise_dim()])
-
-        print(noise.shape)
+        noise = self.sample_noise(batch_size, self.get_noise_dim)
 
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             # Predict images with G
