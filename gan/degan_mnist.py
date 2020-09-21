@@ -20,7 +20,6 @@ class DEGAN_MNIST(GAN):
 
     def __init__(self, path='gan/models/mnist/degan/', show_training_results=True):
         super().__init__(path=path, show_training_results=show_training_results)
-
         self.ae = AE_MNIST(128, path="ae_degan_mnist")
 
     def build_generator(self):
