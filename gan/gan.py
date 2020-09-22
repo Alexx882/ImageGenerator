@@ -113,6 +113,8 @@ class GAN(ABC):
         batch_size = real_data_batch.shape[0]
         noise = self.sample_noise(batch_size, self.get_noise_dim)
 
+        print(noise.shape)
+
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             # Predict images with G
             gen_data = self.generator(noise, training=True)

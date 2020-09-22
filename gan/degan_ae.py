@@ -26,7 +26,7 @@ class AE_MNIST(keras.Model):
     
     def build_decoder(self, latent_dim):
         '''
-        Build the encoder network. 
+        Build the encoder network.
         '''
         latent_inputs = keras.Input(shape=(latent_dim,))
         x = layers.Dense(128, activation="relu")(latent_inputs)
