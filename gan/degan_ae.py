@@ -2,6 +2,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers 
+import matplotlib.pyplot as plt
 
 class AE_MNIST(keras.Model):
     '''
@@ -62,7 +63,7 @@ class AE_MNIST(keras.Model):
         # encoder.summary()
 
         if self.load:
-            encoder.load_weights(f"{self.path}vae_save/encoder_weights.h5")
+            encoder.load_weights(f"{self.path}/encoder_weights.h5")
         
         return encoder
 
@@ -85,11 +86,37 @@ class AE_MNIST(keras.Model):
             "reconstruction_loss": reconstruction_loss
         }
 
+def load_prepared_data():
+    (x_train, _), (x_test, _) = keras.datasets.mnist.load_data()
+
+    x_train = x_train.astype('float32') / 255.
+    x_train = x_train.reshape((len(x_train), 28, 28, 1))
+
+    x_test = x_test.astype('float32') / 255.
+    x_test = x_test.reshape((len(x_test), 28, 28, 1))
+
+    return (x_train, x_test)
+
+def visualize(vae):
+    (_, x_test) = load_prepared_data()
+
+    decoded_imgs = vae.decoder.predict(vae.encoder.predict(x_test))
+
+    n = 5  # how many digits we will display
+
+    plt.figure(figsize=(10,10)) # specifying the overall grid size
+
+    for i in range(n*n):
+        plt.subplot(n,n,i+1)    # the number of images in the grid is 5*5 (25)
+        plt.imshow(decoded_imgs[i].reshape(28,28))
+        plt.axis('off')
+        plt.gray()
+
+    plt.show()
 
 if __name__ == "__main__":
-    load = False  # should stored weights be loaded from the disk?
+    load = True  # should stored weights be loaded from the disk?
     train = True  # should the model be trained? 
-    export = True # should the weights be exported?
 
     # load the MNIST data and merge training and test data
     (x_train, y_train), (x_test, _) = keras.datasets.mnist.load_data()
@@ -97,7 +124,7 @@ if __name__ == "__main__":
     mnist_digits = np.expand_dims(mnist_digits, -1).astype("float32") / 255
 
     # initialize the autoencoder and give it a path where to store images and its model
-    vae = AE_MNIST(128, path="gan/models/mnist/degan/ae_degan_mnist")
+    vae = AE_MNIST(128, path="gan/models/mnist/degan/ae_degan_mnist", load=load)
     vae.compile(optimizer=keras.optimizers.Adam())
 
     # training
@@ -107,4 +134,6 @@ if __name__ == "__main__":
 
             vae.encoder.save(f"{vae.path}/encoder_weights.h5")
             vae.decoder.save(f"{vae.path}/decoder_weights.h5")
+
+    # visualize(vae)
 

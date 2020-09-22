@@ -163,22 +163,16 @@ def visualize(vae):
 
     decoded_imgs = vae.autoencoder.predict(x_test)
 
-    n = 10  # how many digits we will display
-    plt.figure(figsize=(20, 4))
-    for i in range(n):
-        # display original
-        ax = plt.subplot(2, n, i + 1)
-        plt.imshow(x_test[i].reshape(28, 28))
-        plt.gray()
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
+    n = 5  # how many digits we will display
 
-        # display reconstruction
-        ax = plt.subplot(2, n, i + 1 + n)
-        plt.imshow(decoded_imgs[i].reshape(28, 28))
+    plt.figure(figsize=(10,10)) # specifying the overall grid size
+
+    for i in range(n*n):
+        plt.subplot(n,n,i+1)    # the number of images in the grid is 5*5 (25)
+        plt.imshow(decoded_imgs[i].reshape(28,28))
+        plt.axis('off')
         plt.gray()
-        ax.get_xaxis().set_visible(False)
-        ax.get_yaxis().set_visible(False)
+
     plt.show()
 
 
@@ -199,7 +193,7 @@ if __name__ == "__main__":
     vae = VAE((28, 28, 1), 128, summary=True)
     vae.import_models("gan/models/mnist/degan/ae2")
 
-    train(vae)
+    # train(vae)
     visualize(vae)
 
     vae.export("gan/models/mnist/degan/ae2")
