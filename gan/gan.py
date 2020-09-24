@@ -160,12 +160,13 @@ class GAN(ABC):
 
         for i in range(predictions.shape[0]):
             plt.subplot(4, 4, i+1)
-            plt.imshow(predictions[i, :, :, 0] * 127.5 + 127.5, cmap='gray')
+            plt.imshow((predictions[i,] * 127.5 + 127.5).numpy().astype('int')) # .numpy() is used to materialize EagerTensor
             plt.axis('off')
 
         plt.savefig(os.path.normpath(self.path + '/images/image_at_epoch_{:04d}.png'.format(epoch)))
         if self.show_training_results:
             plt.show()
+        plt.close(fig)
 
     def generate_gif(self, extend_last_frame=True):
         import tensorflow_docs.vis.embed as embed # pip install git+https://github.com/tensorflow/docs
