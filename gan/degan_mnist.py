@@ -71,3 +71,9 @@ class DEGAN_MNIST(GAN):
         d = tf.keras.optimizers.Adam(.0002, .5) 
         g = tf.keras.optimizers.Adam(.0002, .5) 
         return (d, g)
+    
+    def generate(self):
+        '''
+        samples a noise-vector and returns the outputs of the last layer of the generator
+        '''
+        return self.sample_noise()

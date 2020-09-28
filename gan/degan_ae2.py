@@ -9,7 +9,7 @@ ENC_FILENAME = "/encoder.h5"
 DEC_FILENAME = "/decoder.h5"
 AUT_FILENAME = "/autoencoder.h5"
 
-class VAE:
+class AE:
     E_LAST_LAYER = "latent_layer"
 
     D_FIRST_LAYER = "decoder"
@@ -190,7 +190,7 @@ def test():
 
 if __name__ == "__main__":
     # map the MNIST images (28x28 with only 1 channel) to a space of 32 floats
-    vae = VAE((28, 28, 1), 128, summary=True)
+    vae = AE((28, 28, 1), 128, summary=True)
     vae.import_models("gan/models/mnist/degan/ae2")
 
     # train(vae)
