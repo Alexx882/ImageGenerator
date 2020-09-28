@@ -27,5 +27,5 @@ gan.train(epochs=50)
 
 ### 
 
-gan.generate_gif()
 gan.export()
+gan.generate_gif()
