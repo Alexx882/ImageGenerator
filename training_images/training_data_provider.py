@@ -76,14 +76,14 @@ class TrainingDataProvider:
         image = cropper.squarify(image, c)
 
         # FIXME greyscale for now
-        image = image.convert('L')
+        image = image.convert('RGB')
 
         return image
             
     def _convert_image_batch_to_training_array(self, images: List[np.ndarray]) -> np.ndarray:
         '''Converts a list of individual image arrays to a single array preprocessed for training.'''
         array = np.asarray(images)
-        array = array.reshape(array.shape[0], self.image_width, self.image_height, 1).astype('float32')
+        array = array.reshape(array.shape[0], self.image_width, self.image_height, 3).astype('float32')
         array = (array - 127.5) / (127.5) 
         return array
 
@@ -149,16 +149,17 @@ class TrainingDataProvider:
 
 
 if __name__ == '__main__':
-    pass
     # store all preprocessed image arrays on disk
 
-    # p = TrainingDataProvider([r'E:\Projects\ImageGenerator\training_images\img_align_celeba_png'], 256, 256, 64)
+    p = TrainingDataProvider([os.path.normpath(os.path.dirname(os.path.realpath(__file__)) + '/img_align_celeba_png/')], 512, 512, 32)
 
-    # p.store_image_arrays_on_disk()
+    p.store_image_arrays_on_disk()
 
     # for batch in p.get_all_training_images_in_batches_from_disk():
     #     print(batch.shape)
+
     #     import matplotlib.pyplot as plt
-    #     plt.imshow((batch[0, :,:,0] ), cmap='gray')
+    #     plt.imshow((batch[0,] * 127.5 + 127.5).astype('int'))
     #     plt.show()
+
     #     break

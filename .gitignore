@@ -10,6 +10,8 @@
 !/training_images/readme.md
 !/training_images/training_data_provider.py
 
+/slurm-*
+
 # keep model weights and progress.gif but ignore all images for gif creation
 /gan/models/*
 /gan/models/**/images/
